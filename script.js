@@ -2,7 +2,70 @@
  * script.js
  * Part 1 – Theme system & settings panel (runs on every page)
  * Part 2 – Subject page logic (subject.html only)
+ * Part 3 – Home page bulk-open (index.html only)
  */
+
+/* ============================================================
+   Shared — Bulk Open utilities (used by Parts 2 & 3)
+   ============================================================ */
+var BULK_OPEN = (function () {
+  var DELAY_MS = 300;
+  var MAX_TABS = 15;
+
+  function getUrlsForSubject(subject, sectionId) {
+    var urls = [];
+    if (Array.isArray(subject.sections)) {
+      subject.sections.forEach(function (sec) {
+        if (!sectionId || sec.id === sectionId) {
+          sec.files.forEach(function (f) {
+            urls.push(sec.folder + "/" + encodeURIComponent(f));
+          });
+        }
+      });
+    } else if (Array.isArray(subject.files)) {
+      subject.files.forEach(function (f) {
+        urls.push(subject.folder + "/" + encodeURIComponent(f));
+      });
+    }
+    return urls;
+  }
+
+  function openWithDelay(urls, statusEl) {
+    if (urls.length === 0) {
+      alert("No PDFs found for the selected scope.");
+      return;
+    }
+    var toOpen = urls;
+    if (urls.length > MAX_TABS) {
+      var proceed = window.confirm(
+        urls.length + " PDFs are in scope, but the safety limit is " + MAX_TABS + ".\n" +
+        "Only the first " + MAX_TABS + " will be opened. Continue?"
+      );
+      if (!proceed) return;
+      toOpen = urls.slice(0, MAX_TABS);
+    }
+    if (statusEl) {
+      statusEl.textContent = "Opening PDFs\u2026 (0\u202f/\u202f" + toOpen.length + ")";
+      statusEl.removeAttribute("hidden");
+    }
+    toOpen.forEach(function (url, i) {
+      setTimeout(function () {
+        window.open(url, "_blank", "noopener,noreferrer");
+        if (statusEl) {
+          var done = i + 1;
+          if (done < toOpen.length) {
+            statusEl.textContent = "Opening PDFs\u2026 (" + done + "\u202f/\u202f" + toOpen.length + ")";
+          } else {
+            statusEl.textContent = "\u2713 Opened " + done + " PDF(s).";
+            setTimeout(function () { statusEl.setAttribute("hidden", ""); }, 3000);
+          }
+        }
+      }, i * DELAY_MS);
+    });
+  }
+
+  return { getUrlsForSubject: getUrlsForSubject, openWithDelay: openWithDelay };
+})();
 
 /* ============================================================
    PART 1 — Theme System & Settings Panel
@@ -298,6 +361,41 @@
       .replace(/'/g, "&#39;");
   }
 
+  /* ----------------------------------------------------------
+     Bulk Open helpers (Part 2 — subject page)
+     ---------------------------------------------------------- */
+
+  /** Wire up the bulk-open bar on the subject page once the subject is known. */
+  function initBulkOpen(subject) {
+    const bar = document.getElementById("bulk-open-bar");
+    if (!bar) return;
+    const scopeSelect = document.getElementById("bulk-open-scope");
+    const openBtn    = document.getElementById("bulk-open-btn");
+    const statusEl   = document.getElementById("bulk-open-status");
+
+    if (Array.isArray(subject.sections)) {
+      const allOpt = document.createElement("option");
+      allOpt.value = "";
+      allOpt.textContent = "All Sections";
+      scopeSelect.appendChild(allOpt);
+      subject.sections.forEach(sec => {
+        const opt = document.createElement("option");
+        opt.value = sec.id;
+        opt.textContent = sec.label;
+        scopeSelect.appendChild(opt);
+      });
+    } else {
+      // Flat subject — scope selector not needed
+      scopeSelect.style.display = "none";
+    }
+
+    bar.removeAttribute("hidden");
+    openBtn.addEventListener("click", () => {
+      const sectionId = Array.isArray(subject.sections) ? (scopeSelect.value || null) : null;
+      BULK_OPEN.openWithDelay(BULK_OPEN.getUrlsForSubject(subject, sectionId), statusEl);
+    });
+  }
+
   /**
    * Build file card HTML strings for a given list of files and folder.
    * Returns an array of anchor element strings.
@@ -435,6 +533,9 @@
 
     render("");
 
+    // Bulk open bar
+    initBulkOpen(subject);
+
     // Search bar
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
@@ -449,5 +550,56 @@
     document.addEventListener("DOMContentLoaded", initSubjectPage);
   } else {
     initSubjectPage();
+  }
+})();
+
+/* ============================================================
+   PART 3 — Home Page Bulk Open
+   ============================================================ */
+(function () {
+  function initHomeBulkOpen() {
+    var bar = document.getElementById("bulk-open-bar");
+    if (!bar || typeof SUBJECTS === "undefined") return;
+
+    var scopeSelect = document.getElementById("bulk-open-scope");
+    var openBtn     = document.getElementById("bulk-open-btn");
+    var statusEl    = document.getElementById("bulk-open-status");
+
+    var allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = "All Subjects";
+    scopeSelect.appendChild(allOpt);
+
+    SUBJECTS.forEach(function (s) {
+      var opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.icon + " " + s.label;
+      scopeSelect.appendChild(opt);
+    });
+
+    openBtn.addEventListener("click", function () {
+      var subjectId = scopeSelect.value;
+      var filtered = subjectId
+        ? SUBJECTS.filter(function (s) { return s.id === subjectId; })
+        : SUBJECTS;
+      var urls = [];
+      filtered.forEach(function (s) {
+        urls = urls.concat(BULK_OPEN.getUrlsForSubject(s, null));
+      });
+      BULK_OPEN.openWithDelay(urls, statusEl);
+    });
+  }
+
+  /* Only runs on index.html (subjects-grid is absent on subject.html) */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      if (document.getElementById("subjects-grid")) {
+        initHomeBulkOpen();
+      }
+    });
+  } else {
+    if (document.getElementById("subjects-grid")) {
+      initHomeBulkOpen();
+    }
   }
 })();
