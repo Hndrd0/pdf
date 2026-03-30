@@ -14,10 +14,10 @@
     { "name": "Lunch", "time": "12:40 - 1:10" }
   ],
   "schedule": {
-    "Monday":    ["SSc",    "SSc", "English", "Hindi",   "", "Chemistry",      "Maths",     "Computer",  "Games"],
-    "Tuesday":   ["Maths", "Maths",    "Hindi", "Chemistry",     "", "English",  "Computer",  "Biology",    "SSc"],
-    "Wednesday": ["Computer",   "English", "English",    "Biology", "", "Maths", "SSc",      "Physics",  "Hindi"],
-    "Thursday":  ["Hindi", "Maths",     "Chemistry",   "English",    "", "SSc",     "Physics",  "Chemistry/Physics Practical",  "M/D/T/I/A"],
-    "Friday":    ["Biology",     "Hindi",   "Hindi",  "Physics", "", "Biology/Chemistry Practical",  "English",     "Maths",  "SSc"]
+    "Monday":    ["SSc", "SSc", "English", "Hindi", "", "Chemistry", "Maths", "Computer", "Games"],
+    "Tuesday":   ["Maths", "Maths", "Hindi", "Chemistry", "", "English", "Computer", "Biology", "SSc"],
+    "Wednesday": ["Computer", "English", "English", "Biology", "", "Maths", "SSc", "Physics", "Hindi"],
+    "Thursday":  ["Hindi", "Maths", "Chemistry", "English", "", "SSc", "Physics", "Chemistry/Physics Practical", "M/D/T/I/A"],
+    "Friday":    ["Biology", "Hindi", "Hindi", "Physics", "", "Biology/Chemistry Practical", "English", "Maths", "SSc"]
   }
 }
