@@ -1,5 +1,223 @@
 /**
  * script.js
+ * Part 1 – Theme system & settings panel (runs on every page)
+ * Part 2 – Subject page logic (subject.html only)
+ */
+
+/* ============================================================
+   PART 1 — Theme System & Settings Panel
+   ============================================================ */
+(function () {
+  var THEMES = [
+    {
+      id: 'default',
+      label: 'Default',
+      colors: ['#1a73e8', '#f4f6fb', '#ffffff']
+    },
+    {
+      id: 'dark',
+      label: 'Dark Mode',
+      colors: ['#60a5fa', '#0f1117', '#1e2130']
+    },
+    {
+      id: 'ios',
+      label: 'iOS Style',
+      colors: ['#007aff', '#f2f2f7', 'rgba(255,255,255,0.82)']
+    },
+    {
+      id: 'grayscale',
+      label: 'Grayscale',
+      colors: ['#333333', '#f0f0f0', '#ffffff']
+    },
+    {
+      id: 'pastel',
+      label: 'Soft Pastel',
+      colors: ['#9c6fcd', '#fdf6f0', '#fff8fc']
+    }
+  ];
+
+  /** Apply a theme by id and persist it */
+  function applyTheme(themeId) {
+    document.documentElement.setAttribute('data-theme', themeId);
+    localStorage.setItem('theme', themeId);
+    updateActiveButton(themeId);
+  }
+
+  /** Mark the matching theme button as active */
+  function updateActiveButton(themeId) {
+    document.querySelectorAll('.settings-theme-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.theme === themeId);
+    });
+  }
+
+  /** Pick a random theme different from the current one */
+  function applyRandomTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || 'default';
+    var others = THEMES.filter(function (t) { return t.id !== current; });
+    var pick = others[Math.floor(Math.random() * others.length)];
+    applyTheme(pick.id);
+  }
+
+  /** Inject the settings button into the page header */
+  function buildSettingsButton() {
+    var header = document.querySelector('header');
+    if (!header) return;
+
+    var btn = document.createElement('button');
+    btn.id = 'settings-btn';
+    btn.className = 'settings-btn';
+    btn.setAttribute('aria-label', 'Open settings');
+    btn.setAttribute('aria-controls', 'settings-panel');
+    btn.title = 'Settings';
+    btn.textContent = '\u2699\uFE0F'; // ⚙️
+
+    btn.addEventListener('click', openPanel);
+    header.appendChild(btn);
+  }
+
+  /** Inject the overlay + settings panel into the page body */
+  function buildSettingsPanel() {
+    /* Overlay */
+    var overlay = document.createElement('div');
+    overlay.id = 'settings-overlay';
+    overlay.className = 'settings-overlay';
+    overlay.addEventListener('click', closePanel);
+
+    /* Panel */
+    var panel = document.createElement('div');
+    panel.id = 'settings-panel';
+    panel.className = 'settings-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-label', 'Settings');
+
+    /* Panel header */
+    var panelHeader = document.createElement('div');
+    panelHeader.className = 'settings-panel-header';
+
+    var title = document.createElement('h2');
+    title.textContent = 'Settings';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'settings-close-btn';
+    closeBtn.setAttribute('aria-label', 'Close settings');
+    closeBtn.textContent = '\u2715'; // ✕
+    closeBtn.addEventListener('click', closePanel);
+
+    panelHeader.appendChild(title);
+    panelHeader.appendChild(closeBtn);
+
+    /* Panel body */
+    var panelBody = document.createElement('div');
+    panelBody.className = 'settings-panel-body';
+
+    var sectionLabel = document.createElement('h3');
+    sectionLabel.className = 'settings-section-label';
+    sectionLabel.textContent = 'Appearance';
+
+    /* Theme list */
+    var themeList = document.createElement('div');
+    themeList.className = 'theme-list';
+
+    THEMES.forEach(function (theme) {
+      var btn = document.createElement('button');
+      btn.className = 'settings-theme-btn';
+      btn.dataset.theme = theme.id;
+      btn.setAttribute('aria-label', 'Apply ' + theme.label + ' theme');
+
+      var swatch = document.createElement('span');
+      swatch.className = 'theme-swatch';
+      swatch.style.background =
+        'linear-gradient(135deg, ' +
+        theme.colors[0] + ' 33%, ' +
+        theme.colors[1] + ' 33% 66%, ' +
+        theme.colors[2] + ' 66%)';
+
+      var label = document.createElement('span');
+      label.textContent = theme.label;
+
+      btn.appendChild(swatch);
+      btn.appendChild(label);
+      btn.addEventListener('click', function () { applyTheme(theme.id); });
+      themeList.appendChild(btn);
+    });
+
+    /* Random theme button */
+    var randomBtn = document.createElement('button');
+    randomBtn.id = 'random-theme-btn';
+    randomBtn.className = 'random-theme-btn';
+    randomBtn.setAttribute('aria-label', 'Apply a random theme');
+
+    var diceIcon = document.createElement('span');
+    diceIcon.setAttribute('aria-hidden', 'true');
+    diceIcon.textContent = '\uD83C\uDFB2 '; // 🎲
+
+    var randomBtnText = document.createElement('span');
+    randomBtnText.textContent = 'Random Theme';
+
+    randomBtn.appendChild(diceIcon);
+    randomBtn.appendChild(randomBtnText);
+    randomBtn.addEventListener('click', applyRandomTheme);
+
+    panelBody.appendChild(sectionLabel);
+    panelBody.appendChild(themeList);
+    panelBody.appendChild(randomBtn);
+
+    panel.appendChild(panelHeader);
+    panel.appendChild(panelBody);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(panel);
+  }
+
+  function openPanel() {
+    var panel = document.getElementById('settings-panel');
+    var overlay = document.getElementById('settings-overlay');
+    if (panel) panel.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    var current = document.documentElement.getAttribute('data-theme') || 'default';
+    updateActiveButton(current);
+  }
+
+  function closePanel() {
+    var panel = document.getElementById('settings-panel');
+    var overlay = document.getElementById('settings-overlay');
+    if (panel) panel.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* Close panel on Escape key */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closePanel();
+  });
+
+  /* Apply saved theme immediately (before paint) */
+  var savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+
+  /* Build UI when DOM is ready */
+  function initUI() {
+    buildSettingsButton();
+    buildSettingsPanel();
+    var current = localStorage.getItem('theme') || 'default';
+    updateActiveButton(current);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUI);
+  } else {
+    initUI();
+  }
+})();
+
+/* ============================================================
+   PART 2 — Subject Page
+   ============================================================ */
+/**
  * Handles the subject page (subject.html):
  *  - Reads the `subject` query parameter to determine which subject to show
  *  - Fetches the file list from config.js (SUBJECTS)
