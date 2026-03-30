@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timetable — Study PDFs</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    /* Restore saved theme before first paint to avoid flash */
+    (function () {
+      var t = localStorage.getItem('theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+      var tt = localStorage.getItem('ttTheme');
+      if (tt) {
+        if (tt === 'random') {
+          var opts = ['ios', 'minimal', 'dark'];
+          tt = opts[Math.floor(Math.random() * opts.length)];
+        }
+        document.documentElement.setAttribute('data-tt-theme', tt);
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="back-btn">← Home</a>
+    <h1>🗓️ Timetable</h1>
+  </header>
+
+  <main>
+    <p id="tt-status" class="status-msg">Loading timetable…</p>
+    <div id="tt-container" hidden></div>
+  </main>
+
+  <footer>
+    <p>Content belongs to NCERT</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>

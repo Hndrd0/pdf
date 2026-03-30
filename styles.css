@@ -724,6 +724,342 @@ footer {
 }
 
 /* ==============================
+   Timetable Nav Button (index)
+   ============================== */
+.tt-nav-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.tt-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 0.7rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 10px var(--accent-shadow);
+  transition: opacity 0.2s, transform 0.15s, background-color var(--transition), box-shadow var(--transition);
+  letter-spacing: 0.01em;
+}
+
+.tt-nav-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px var(--accent-shadow-hover);
+}
+
+.tt-nav-btn:active {
+  transform: translateY(0);
+}
+
+/* ==============================
+   Timetable Page
+   ============================== */
+.tt-meta {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  transition: color var(--transition);
+}
+
+.tt-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+
+.tt-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 600px;
+  background: var(--card-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: background-color var(--transition);
+}
+
+/* Column widths */
+.tt-table .tt-period-col {
+  width: 130px;
+  min-width: 110px;
+}
+
+/* Header row */
+.tt-table thead th {
+  background: var(--accent);
+  color: #fff;
+  padding: 0.7rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: background-color var(--transition);
+}
+
+.tt-table thead th:first-child {
+  text-align: left;
+  padding-left: 1rem;
+  border-radius: 0;
+}
+
+/* Body cells */
+.tt-table tbody td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text);
+  background: var(--card-bg);
+  transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+  white-space: nowrap;
+}
+
+.tt-table tbody td:first-child {
+  text-align: left;
+  padding-left: 1rem;
+  font-weight: 600;
+  background: var(--bg);
+  min-width: 110px;
+}
+
+.tt-table tbody tr:first-child td {
+  border-top: none;
+}
+
+/* Period label + time */
+.tt-period-name {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: color var(--transition);
+}
+
+.tt-period-time {
+  display: block;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+  transition: color var(--transition);
+}
+
+/* Break / Lunch rows */
+.tt-table tbody tr.tt-row-break td {
+  background: var(--book-divider);
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
+.tt-table tbody tr.tt-row-break td:first-child {
+  background: var(--book-divider);
+}
+
+/* Current period highlight */
+.tt-table tbody tr.tt-current td {
+  background: var(--accent-shadow);
+}
+
+.tt-table tbody tr.tt-current td:first-child {
+  background: var(--accent-shadow);
+  color: var(--accent);
+}
+
+.tt-table tbody tr.tt-current td:first-child .tt-period-name {
+  color: var(--accent);
+}
+
+.tt-table tbody tr.tt-current {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Today column highlight via data-today header */
+.tt-table th.tt-today,
+.tt-table td.tt-today {
+  background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+}
+
+.tt-table td.tt-today:first-child {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.tt-table tbody tr.tt-row-break td.tt-today {
+  background: color-mix(in srgb, var(--accent) 8%, var(--book-divider));
+}
+
+.tt-table tbody tr.tt-current td.tt-today {
+  background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
+}
+
+/* Current-period badge */
+.tt-now-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ==============================
+   Timetable Themes
+   ============================== */
+
+/* — iOS (glassmorphism) — */
+[data-tt-theme="ios"] .tt-table {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(60, 60, 67, 0.12);
+}
+
+[data-tt-theme="ios"] .tt-table thead th {
+  background: rgba(0, 122, 255, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[data-tt-theme="ios"] .tt-table tbody td {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(60, 60, 67, 0.1);
+}
+
+[data-tt-theme="ios"] .tt-table tbody td:first-child {
+  background: rgba(242, 242, 247, 0.6);
+}
+
+[data-tt-theme="ios"] .tt-table tbody tr.tt-row-break td {
+  background: rgba(0, 122, 255, 0.07);
+}
+
+[data-tt-theme="ios"] .tt-table tbody tr.tt-row-break td:first-child {
+  background: rgba(0, 122, 255, 0.07);
+}
+
+[data-tt-theme="ios"] .tt-table tbody tr.tt-current td {
+  background: rgba(0, 122, 255, 0.13);
+}
+
+[data-tt-theme="ios"] .tt-table tbody tr.tt-current td:first-child {
+  background: rgba(0, 122, 255, 0.13);
+}
+
+/* — Minimal — */
+[data-tt-theme="minimal"] .tt-table {
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+[data-tt-theme="minimal"] .tt-table thead th {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 2px solid var(--border);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+[data-tt-theme="minimal"] .tt-table tbody td {
+  border-color: var(--border);
+  font-size: 0.85rem;
+}
+
+[data-tt-theme="minimal"] .tt-table tbody tr.tt-current td {
+  background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
+  border-left: 3px solid var(--accent);
+}
+
+[data-tt-theme="minimal"] .tt-table tbody tr.tt-current {
+  outline: none;
+}
+
+/* — Dark (always dark cells) — */
+[data-tt-theme="dark"] .tt-scroll {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-tt-theme="dark"] .tt-table {
+  background: #1e2130;
+}
+
+[data-tt-theme="dark"] .tt-table thead th {
+  background: #252a3d;
+  color: #60a5fa;
+  border-bottom: 2px solid #2d3748;
+}
+
+[data-tt-theme="dark"] .tt-table tbody td {
+  background: #1e2130;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+[data-tt-theme="dark"] .tt-table tbody td:first-child {
+  background: #161b27;
+  color: #94a3b8;
+}
+
+[data-tt-theme="dark"] .tt-period-name {
+  color: #e2e8f0;
+}
+
+[data-tt-theme="dark"] .tt-period-time {
+  color: #64748b;
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-row-break td {
+  background: #252a3d;
+  color: #64748b;
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-row-break td:first-child {
+  background: #252a3d;
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-current td {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-current td:first-child {
+  background: rgba(96, 165, 250, 0.12);
+  color: #60a5fa;
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-current td:first-child .tt-period-name {
+  color: #60a5fa;
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-current {
+  outline-color: #60a5fa;
+}
+
+[data-tt-theme="dark"] .tt-table th.tt-today,
+[data-tt-theme="dark"] .tt-table td.tt-today {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+[data-tt-theme="dark"] .tt-table tbody tr.tt-current td.tt-today {
+  background: rgba(96, 165, 250, 0.2);
+}
+
+/* ==============================
    Responsive
    ============================== */
 @media (max-width: 600px) {
