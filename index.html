@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study PDFs</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <h1>📚 Study PDFs</h1>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Welcome!</h2>
+      <p>Select a subject below to browse its chapters and study material.</p>
+    </section>
+
+    <div class="subjects-grid" id="subjects-grid">
+      <!-- Cards are injected by index-script below, or can be static -->
+    </div>
+  </main>
+
+  <footer>
+    <p>Content belongs to NCERT</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script>
+    // Build subject cards from config using DOM methods (avoids XSS)
+    (function () {
+      var grid = document.getElementById("subjects-grid");
+      if (!grid || typeof SUBJECTS === "undefined") return;
+
+      SUBJECTS.forEach(function (subject) {
+        var a = document.createElement("a");
+        a.className = "subject-card";
+        a.href = "subject.html?subject=" + encodeURIComponent(subject.id);
+
+        var iconSpan = document.createElement("span");
+        iconSpan.className = "icon";
+        iconSpan.textContent = subject.icon;
+
+        var h3 = document.createElement("h3");
+        h3.textContent = subject.label;
+
+        var p = document.createElement("p");
+        p.textContent = subject.description;
+
+        a.appendChild(iconSpan);
+        a.appendChild(h3);
+        a.appendChild(p);
+        grid.appendChild(a);
+      });
+    })();
+  </script>
+
+</body>
+</html>

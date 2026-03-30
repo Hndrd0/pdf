@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">Subject — Study PDFs</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header>
+    <a href="index.html" class="back-btn">← Home</a>
+    <h1 id="subject-heading">Subject</h1>
+  </header>
+
+  <main>
+
+    <!-- Search bar -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input
+        type="search"
+        id="search-input"
+        placeholder="Search chapters…"
+        aria-label="Search chapters"
+      />
+    </div>
+
+    <!-- Status / error message -->
+    <p class="status-msg" id="status-msg" hidden></p>
+
+    <!-- File listing section -->
+    <section id="file-section" hidden>
+      <p class="section-title">
+        Files
+        <span id="file-count" class="file-count-label"></span>
+      </p>
+      <div class="file-grid" id="file-list">
+        <!-- File cards injected by script.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Content belongs to NCERT</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>
