@@ -3,10 +3,11 @@
  * Handles the subject page (subject.html):
  *  - Reads the `subject` query parameter to determine which subject to show
  *  - Fetches the file list from config.js (SUBJECTS)
+ *  - Supports both flat subjects (files[]) and sectioned subjects (sections[])
  *  - Sorts files numerically
  *  - Converts filenames to display names
  *  - Renders clickable PDF cards that open in a new tab
- *  - Provides a live search/filter bar
+ *  - Provides a live search/filter bar across all sections
  */
 
 (function () {
@@ -58,9 +59,10 @@
 
   /**
    * Convert a filename to a human-readable display name.
-   * "Chapter (1).pdf"  → "Chapter 1"
-   * "Appendix (2).pdf" → "Appendix 2"
-   * "Answers.pdf"      → "Answers"
+   * "Chapter (1).pdf"       → "Chapter 1"
+   * "Appendix (2).pdf"      → "Appendix 2"
+   * "Answers.pdf"           → "Answers"
+   * "Lekhan-Parichay.pdf"   → "Lekhan-Parichay"
    */
   function toDisplayName(filename) {
     return filename
@@ -78,34 +80,86 @@
       .replace(/'/g, "&#39;");
   }
 
-  /** Render the list of file cards into #file-list */
-  function renderFiles(files, folder, query) {
-    const container = document.getElementById("file-list");
-    if (!container) return;
-
-    const normalQuery = (query || "").trim().toLowerCase();
+  /**
+   * Build file card HTML strings for a given list of files and folder.
+   * Returns an array of anchor element strings.
+   */
+  function buildFileCards(files, folder, normalQuery) {
     const filtered = normalQuery
       ? files.filter(f => toDisplayName(f).toLowerCase().includes(normalQuery))
       : files;
 
-    if (filtered.length === 0) {
-      container.innerHTML =
-        '<p class="no-results">No files match your search.</p>';
-      return;
+    return filtered.map(filename => {
+      const displayName = escapeHtml(toDisplayName(filename));
+      const url = folder + "/" + encodeURIComponent(filename);
+      return `<a class="file-card" href="${url}" target="_blank" rel="noopener noreferrer">
+        <span class="pdf-icon">📄</span>
+        <span class="file-name">${displayName}</span>
+      </a>`;
+    });
+  }
+
+  /**
+   * Render the subject page for a flat subject (no sections).
+   * Shows all files directly in #file-list.
+   */
+  function renderFlatSubject(subject, query) {
+    const container = document.getElementById("file-list");
+    if (!container) return;
+
+    const sortedFiles = sortFiles(subject.files);
+    const normalQuery = (query || "").trim().toLowerCase();
+    const cards = buildFileCards(sortedFiles, subject.folder, normalQuery);
+
+    if (cards.length === 0) {
+      container.innerHTML = '<p class="no-results">No files match your search.</p>';
+    } else {
+      container.innerHTML = cards.join("");
     }
 
-    container.innerHTML = filtered
-      .map(filename => {
-        const displayName = escapeHtml(toDisplayName(filename));
-        // Encode the filename component separately so spaces and special chars are safe
-        const url = folder + "/" + encodeURIComponent(filename);
-        return `
-          <a class="file-card" href="${url}" target="_blank" rel="noopener noreferrer">
-            <span class="pdf-icon">📄</span>
-            <span class="file-name">${displayName}</span>
-          </a>`;
-      })
-      .join("");
+    const countEl = document.getElementById("file-count");
+    if (countEl) {
+      countEl.textContent = normalQuery
+        ? `${cards.length} of ${sortedFiles.length} file(s)`
+        : `${sortedFiles.length} file(s)`;
+    }
+  }
+
+  /**
+   * Render the subject page for a sectioned subject.
+   * Each section gets its own heading + file grid.
+   */
+  function renderSectionedSubject(subject, query) {
+    const container = document.getElementById("file-list");
+    if (!container) return;
+
+    const normalQuery = (query || "").trim().toLowerCase();
+    let totalVisible = 0;
+    let totalFiles = 0;
+
+    const html = subject.sections.map(section => {
+      const sortedFiles = sortFiles(section.files);
+      totalFiles += sortedFiles.length;
+      const cards = buildFileCards(sortedFiles, section.folder, normalQuery);
+      totalVisible += cards.length;
+
+      if (cards.length === 0) return "";   // hide section entirely when filtered out
+
+      return `
+        <div class="book-section">
+          <h3 class="book-title">${escapeHtml(section.label)}</h3>
+          <div class="file-grid">${cards.join("")}</div>
+        </div>`;
+    }).join("");
+
+    container.innerHTML = html || '<p class="no-results">No files match your search.</p>';
+
+    const countEl = document.getElementById("file-count");
+    if (countEl) {
+      countEl.textContent = normalQuery
+        ? `${totalVisible} of ${totalFiles} file(s)`
+        : `${totalFiles} file(s)`;
+    }
   }
 
   /** Initialise the subject page */
@@ -138,22 +192,36 @@
     if (titleEl) titleEl.textContent = `${subject.label} — Study PDFs`;
     if (headingEl) headingEl.textContent = `${subject.icon} ${subject.label}`;
 
-    const sortedFiles = sortFiles(subject.files);
-
-    // Section count label
-    const countEl = document.getElementById("file-count");
-    if (countEl) countEl.textContent = `${sortedFiles.length} file(s)`;
-
     if (statusEl) statusEl.setAttribute("hidden", "");
     if (fileSection) fileSection.removeAttribute("hidden");
 
-    renderFiles(sortedFiles, subject.folder, "");
+    const isSectioned = Array.isArray(subject.sections);
+
+    // For sectioned subjects the file-grid inside #file-section acts as the
+    // outer container – replace it with a plain div that can hold book-sections.
+    const fileListEl = document.getElementById("file-list");
+    if (isSectioned && fileListEl) {
+      // Remove the file-grid class so it doesn't apply the grid layout to
+      // book-section wrappers; the inner grids keep it.
+      fileListEl.classList.remove("file-grid");
+      fileListEl.classList.add("sections-container");
+    }
+
+    function render(query) {
+      if (isSectioned) {
+        renderSectionedSubject(subject, query);
+      } else {
+        renderFlatSubject(subject, query);
+      }
+    }
+
+    render("");
 
     // Search bar
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
       searchInput.addEventListener("input", function () {
-        renderFiles(sortedFiles, subject.folder, this.value);
+        render(this.value);
       });
     }
   }

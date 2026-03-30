@@ -223,6 +223,31 @@ main {
   font-size: 0.95rem;
 }
 
+/* Book Sections (for subjects with sub-books) */
+.sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.book-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #e8ecf4;
+}
+
+.book-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e8f0fe;
+  letter-spacing: 0.2px;
+}
+
 /* Footer */
 footer {
   background: #fff;
