@@ -668,6 +668,62 @@ footer {
 }
 
 /* ==============================
+   Bulk Open Bar
+   ============================== */
+.bulk-open-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.bulk-open-scope {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition), background-color var(--transition), color var(--transition);
+}
+
+.bulk-open-scope:focus,
+.bulk-open-scope:hover {
+  border-color: var(--accent);
+}
+
+.bulk-open-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s, background-color var(--transition);
+}
+
+.bulk-open-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.bulk-open-btn:active {
+  transform: translateY(0);
+}
+
+.bulk-open-status {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  transition: color var(--transition);
+}
+
+/* ==============================
    Responsive
    ============================== */
 @media (max-width: 600px) {
