@@ -99,6 +99,12 @@ var BULK_OPEN = (function () {
     }
   ];
 
+  var TT_THEMES = [
+    { id: 'ios',     label: 'iOS Style',  icon: '🍎' },
+    { id: 'minimal', label: 'Minimal',    icon: '◻️' },
+    { id: 'dark',    label: 'Dark',       icon: '🌑' }
+  ];
+
   /** Apply a theme by id and persist it */
   function applyTheme(themeId) {
     document.documentElement.setAttribute('data-theme', themeId);
@@ -119,6 +125,25 @@ var BULK_OPEN = (function () {
     var others = THEMES.filter(function (t) { return t.id !== current; });
     var pick = others[Math.floor(Math.random() * others.length)];
     applyTheme(pick.id);
+  }
+
+  /** Apply a timetable theme and persist it */
+  function applyTtTheme(ttId) {
+    localStorage.setItem('ttTheme', ttId);
+    var resolved = ttId;
+    if (ttId === 'random') {
+      var opts = TT_THEMES.map(function (t) { return t.id; });
+      resolved = opts[Math.floor(Math.random() * opts.length)];
+    }
+    document.documentElement.setAttribute('data-tt-theme', resolved);
+    updateActiveTtButton(ttId);
+  }
+
+  /** Mark the matching timetable theme button as active */
+  function updateActiveTtButton(ttId) {
+    document.querySelectorAll('.settings-tt-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.ttTheme === ttId);
+    });
   }
 
   /** Inject the settings button into the page header */
@@ -226,6 +251,59 @@ var BULK_OPEN = (function () {
     panelBody.appendChild(themeList);
     panelBody.appendChild(randomBtn);
 
+    /* ---- Timetable Theme section ---- */
+    var ttDivider = document.createElement('hr');
+    ttDivider.style.cssText = 'border:none;border-top:1px solid var(--border);margin:0.2rem 0;';
+    panelBody.appendChild(ttDivider);
+
+    var ttSectionLabel = document.createElement('h3');
+    ttSectionLabel.className = 'settings-section-label';
+    ttSectionLabel.textContent = 'Timetable Theme';
+    panelBody.appendChild(ttSectionLabel);
+
+    var ttList = document.createElement('div');
+    ttList.className = 'theme-list';
+
+    TT_THEMES.forEach(function (theme) {
+      var btn = document.createElement('button');
+      btn.className = 'settings-theme-btn settings-tt-btn';
+      btn.dataset.ttTheme = theme.id;
+      btn.setAttribute('aria-label', 'Apply ' + theme.label + ' timetable theme');
+
+      var icon = document.createElement('span');
+      icon.className = 'theme-swatch';
+      icon.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:none;border:none;';
+      icon.textContent = theme.icon;
+
+      var label = document.createElement('span');
+      label.textContent = theme.label;
+
+      btn.appendChild(icon);
+      btn.appendChild(label);
+      btn.addEventListener('click', function () { applyTtTheme(theme.id); });
+      ttList.appendChild(btn);
+    });
+
+    panelBody.appendChild(ttList);
+
+    /* Random timetable theme button */
+    var ttRandomBtn = document.createElement('button');
+    ttRandomBtn.className = 'settings-tt-btn random-theme-btn';
+    ttRandomBtn.dataset.ttTheme = 'random';
+    ttRandomBtn.setAttribute('aria-label', 'Apply a random timetable theme');
+
+    var diceIcon2 = document.createElement('span');
+    diceIcon2.setAttribute('aria-hidden', 'true');
+    diceIcon2.textContent = '\uD83C\uDFB2 '; // 🎲
+
+    var ttRandomText = document.createElement('span');
+    ttRandomText.textContent = 'Random Timetable Theme';
+
+    ttRandomBtn.appendChild(diceIcon2);
+    ttRandomBtn.appendChild(ttRandomText);
+    ttRandomBtn.addEventListener('click', function () { applyTtTheme('random'); });
+    panelBody.appendChild(ttRandomBtn);
+
     panel.appendChild(panelHeader);
     panel.appendChild(panelBody);
 
@@ -241,6 +319,8 @@ var BULK_OPEN = (function () {
     document.body.style.overflow = 'hidden';
     var current = document.documentElement.getAttribute('data-theme') || 'default';
     updateActiveButton(current);
+    var currentTt = localStorage.getItem('ttTheme') || '';
+    updateActiveTtButton(currentTt);
   }
 
   function closePanel() {
@@ -268,6 +348,8 @@ var BULK_OPEN = (function () {
     buildSettingsPanel();
     var current = localStorage.getItem('theme') || 'default';
     updateActiveButton(current);
+    var currentTt = localStorage.getItem('ttTheme') || '';
+    updateActiveTtButton(currentTt);
   }
 
   if (document.readyState === 'loading') {
@@ -601,5 +683,206 @@ var BULK_OPEN = (function () {
     if (document.getElementById("subjects-grid")) {
       initHomeBulkOpen();
     }
+  }
+})();
+
+/* ============================================================
+   PART 4 — Timetable Page
+   ============================================================ */
+(function () {
+  /**
+   * Parse a time string like "8:00" or "1:10" into minutes since midnight.
+   * School periods run from 8:00 AM to 1:10 PM.
+   * Hours < 7 are assumed to be PM (e.g. "1:10" → 13:10).
+   * All period times should stay in the range 7:00–23:59 to avoid ambiguity.
+   * Returns NaN if the format is invalid.
+   */
+  function parseTimeToMinutes(timeStr) {
+    var parts = (timeStr || '').trim().split(':');
+    if (parts.length !== 2) return NaN;
+    var h = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    if (isNaN(h) || isNaN(m) || m < 0 || m > 59) return NaN;
+    if (h < 7) h += 12; // 1:10 → 13:10 PM
+    return h * 60 + m;
+  }
+
+  /** Return the index of the period currently active, or -1 if none. */
+  function getCurrentPeriodIndex(periods) {
+    var now = new Date();
+    var nowMins = now.getHours() * 60 + now.getMinutes();
+    for (var i = 0; i < periods.length; i++) {
+      var range = periods[i].time.split('-');
+      if (range.length < 2) continue;
+      var start = parseTimeToMinutes(range[0]);
+      var end   = parseTimeToMinutes(range[1]);
+      if (isNaN(start) || isNaN(end)) continue;
+      if (nowMins >= start && nowMins < end) return i;
+    }
+    return -1;
+  }
+
+  /** Return the 0-based day-of-week index in the days array, or -1 if today is not listed. */
+  function getTodayIndex(days) {
+    var NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var todayName = NAMES[new Date().getDay()];
+    return days.indexOf(todayName);
+  }
+
+  /** Build and inject the timetable into #tt-container. */
+  function renderTimetable(data) {
+    var days    = data.days    || [];
+    var periods = data.periods || [];
+    var schedule = data.schedule || {};
+
+    var currentPeriod = getCurrentPeriodIndex(periods);
+    var todayIdx      = getTodayIndex(days);
+
+    // Wrapper + meta
+    var container = document.getElementById('tt-container');
+    if (!container) return;
+
+    // Meta line showing current day/period info
+    var meta = document.createElement('p');
+    meta.className = 'tt-meta';
+    if (currentPeriod !== -1) {
+      var p = periods[currentPeriod];
+      meta.textContent = 'Now: ' + p.name + ' (' + p.time + ')';
+    } else {
+      var now2 = new Date();
+      var h2 = now2.getHours(), m2 = now2.getMinutes();
+      meta.textContent = 'Current time: ' + h2 + ':' + (m2 < 10 ? '0' : '') + m2 + ' — No active period';
+    }
+    container.appendChild(meta);
+
+    // Scroll wrapper for horizontal overflow on mobile
+    var scroll = document.createElement('div');
+    scroll.className = 'tt-scroll';
+
+    // Table
+    var table = document.createElement('table');
+    table.className = 'tt-table';
+    table.setAttribute('role', 'grid');
+    table.setAttribute('aria-label', 'Timetable');
+
+    // --- <thead> ---
+    var thead = document.createElement('thead');
+    var headRow = document.createElement('tr');
+
+    var thPeriod = document.createElement('th');
+    thPeriod.className = 'tt-period-col';
+    thPeriod.scope = 'col';
+    thPeriod.textContent = 'Period';
+    headRow.appendChild(thPeriod);
+
+    days.forEach(function (day, di) {
+      var th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = day;
+      if (di === todayIdx) th.classList.add('tt-today');
+      headRow.appendChild(th);
+    });
+
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    // --- <tbody> ---
+    var tbody = document.createElement('tbody');
+
+    // Subjects rows come from periods array, but Break/Lunch have no subject slots.
+    // The schedule arrays only contain subject slots (P1-P8), skipping Break/Lunch.
+    // We need to map period index → schedule array index.
+    var scheduleIdx = 0; // index into the per-day subjects array (skips break/lunch)
+
+    periods.forEach(function (period, pi) {
+      var isBreakOrLunch = (period.name === 'Break' || period.name === 'Lunch');
+      var isCurrent = (pi === currentPeriod);
+
+      var tr = document.createElement('tr');
+      if (isBreakOrLunch) tr.classList.add('tt-row-break');
+      if (isCurrent)      tr.classList.add('tt-current');
+
+      // Period label cell
+      var tdLabel = document.createElement('td');
+      tdLabel.className = 'tt-period-col';
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'tt-period-name';
+      nameSpan.textContent = period.name;
+
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'tt-period-time';
+      timeSpan.textContent = period.time;
+
+      if (isCurrent) {
+        var badge = document.createElement('span');
+        badge.className = 'tt-now-badge';
+        badge.textContent = 'NOW';
+        nameSpan.appendChild(badge);
+      }
+
+      tdLabel.appendChild(nameSpan);
+      tdLabel.appendChild(timeSpan);
+      tr.appendChild(tdLabel);
+
+      // Subject cells per day
+      days.forEach(function (day, di) {
+        var td = document.createElement('td');
+        if (di === todayIdx) td.classList.add('tt-today');
+
+        if (!isBreakOrLunch) {
+          var subjects = schedule[day];
+          var subj = (subjects && subjects[scheduleIdx]) ? subjects[scheduleIdx] : '';
+          td.textContent = subj;
+        }
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+
+      if (!isBreakOrLunch) scheduleIdx++;
+    });
+
+    table.appendChild(tbody);
+    scroll.appendChild(table);
+    container.appendChild(scroll);
+
+    // Scroll today's column into view on mobile
+    if (todayIdx !== -1) {
+      var todayTh = table.querySelector('th.tt-today');
+      if (todayTh) {
+        setTimeout(function () { todayTh.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 100);
+      }
+    }
+  }
+
+  /** Initialise the timetable page */
+  function initTimetablePage() {
+    var container = document.getElementById('tt-container');
+    var statusEl  = document.getElementById('tt-status');
+    if (!container) return; // not on timetable.html
+
+    fetch('timetable.json')
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        if (statusEl) statusEl.setAttribute('hidden', '');
+        container.removeAttribute('hidden');
+        renderTimetable(data);
+      })
+      .catch(function (err) {
+        if (statusEl) {
+          statusEl.textContent = 'Could not load timetable.json: ' + err.message;
+          statusEl.removeAttribute('hidden');
+        }
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTimetablePage);
+  } else {
+    initTimetablePage();
   }
 })();

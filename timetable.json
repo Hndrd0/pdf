@@ -1,0 +1,24 @@
+{
+  "_notes": "Time format: school hours run 8:00-13:10 (1:10 PM). Times with hour < 7 are treated as PM (e.g. '1:10' → 13:10). Keep all period times in the range 7:00-23:59 to avoid ambiguity.",
+  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "periods": [
+    { "name": "P1", "time": "8:00 - 8:35" },
+    { "name": "P2", "time": "8:35 - 9:10" },
+    { "name": "P3", "time": "9:10 - 9:45" },
+    { "name": "P4", "time": "9:45 - 10:20" },
+    { "name": "Break", "time": "10:20 - 10:40" },
+    { "name": "P5", "time": "10:40 - 11:10" },
+    { "name": "P6", "time": "11:10 - 11:40" },
+    { "name": "P7", "time": "11:40 - 12:10" },
+    { "name": "P8", "time": "12:10 - 12:40" },
+    { "name": "Lunch", "time": "12:40 - 1:10" }
+  ],
+  "schedule": {
+    "Monday":    ["Math",    "English", "Science", "Hindi",   "", "SSC",      "Math",     "Computer"],
+    "Tuesday":   ["Science", "Math",    "English", "SSC",     "", "Hindi",    "Computer", "Math"],
+    "Wednesday": ["Hindi",   "Science", "Math",    "English", "", "Computer", "SSC",      "Math"],
+    "Thursday":  ["English", "SSC",     "Hindi",   "Math",    "", "Math",     "Science",  "Computer"],
+    "Friday":    ["SSC",     "Hindi",   "Computer","Science", "", "English",  "Math",     "Science"],
+    "Saturday":  ["Math",    "Computer","SSC",     "English", "", "Science",  "Hindi",    "Math"]
+  }
+}
