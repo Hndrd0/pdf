@@ -18,6 +18,7 @@
     "Tuesday":   ["Maths", "Maths", "Hindi", "Chemistry", "", "English", "Computer", "Biology", "SSc"],
     "Wednesday": ["Computer", "English", "English", "Biology", "", "Maths", "SSc", "Physics", "Hindi"],
     "Thursday":  ["Hindi", "Maths", "Chemistry", "English", "", "SSc", "Physics", "Chemistry/Physics Practical", "M/D/T/I/A"],
-    "Friday":    ["Biology", "Hindi", "Hindi", "Physics", "", "Biology/Chemistry Practical", "English", "Maths", "SSc"]
+    "Friday":    ["Biology", "Hindi", "Hindi", "Physics", "", "Biology/Chemistry Practical", "English", "Maths", "SSc"],
+    "Saturday":  ["Maths", "Computer", "SSc", "English", "", "Physics", "Hindi", "Maths", ""]
   }
 }
