@@ -780,7 +780,7 @@ footer {
 .tt-table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 900px;
+  table-layout: fixed;
   background: var(--card-bg);
   border-radius: 14px;
   overflow: hidden;
@@ -797,12 +797,12 @@ footer {
 .tt-table thead th {
   background: var(--accent);
   color: #fff;
-  padding: 0.7rem 0.6rem;
+  padding: 0.5rem 0.2rem;
   font-size: 0.85rem;
   font-weight: 600;
   text-align: center;
   letter-spacing: 0.03em;
-  white-space: nowrap;
+  white-space: normal;
   transition: background-color var(--transition);
 }
 
@@ -822,7 +822,8 @@ footer {
   color: var(--text);
   background: var(--card-bg);
   transition: background-color var(--transition), color var(--transition), border-color var(--transition);
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 .tt-table tbody .tt-day-col {
