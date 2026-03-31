@@ -765,46 +765,33 @@ var BULK_OPEN = (function () {
     table.setAttribute('role', 'grid');
     table.setAttribute('aria-label', 'Timetable');
 
+    // Build a map: period index → schedule array index (Break/Lunch map to -1)
+    var periodScheduleIdx = [];
+    var si = 0;
+    periods.forEach(function (period) {
+      if (period.name === 'Break' || period.name === 'Lunch') {
+        periodScheduleIdx.push(-1);
+      } else {
+        periodScheduleIdx.push(si);
+        si++;
+      }
+    });
+
     // --- <thead> ---
+    // Header row: first column "Day", then one column per period
     var thead = document.createElement('thead');
     var headRow = document.createElement('tr');
 
-    var thPeriod = document.createElement('th');
-    thPeriod.className = 'tt-period-col';
-    thPeriod.scope = 'col';
-    thPeriod.textContent = 'Period';
-    headRow.appendChild(thPeriod);
-
-    days.forEach(function (day, di) {
-      var th = document.createElement('th');
-      th.scope = 'col';
-      th.textContent = day;
-      if (di === todayIdx) th.classList.add('tt-today');
-      headRow.appendChild(th);
-    });
-
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    // --- <tbody> ---
-    var tbody = document.createElement('tbody');
-
-    // Subjects rows come from periods array, but Break/Lunch have no subject slots.
-    // The schedule arrays only contain subject slots (P1-P8), skipping Break/Lunch.
-    // We need to map period index → schedule array index.
-    var scheduleIdx = 0; // index into the per-day subjects array (skips break/lunch)
+    var thDay = document.createElement('th');
+    thDay.className = 'tt-period-col';
+    thDay.scope = 'col';
+    thDay.textContent = 'Day';
+    headRow.appendChild(thDay);
 
     periods.forEach(function (period, pi) {
-      var isBreakOrLunch = (period.name === 'Break' || period.name === 'Lunch');
-      var isCurrent = (pi === currentPeriod);
-
-      var tr = document.createElement('tr');
-      if (isBreakOrLunch) tr.classList.add('tt-row-break');
-      if (isCurrent)      tr.classList.add('tt-current');
-
-      // Period label cell
-      var tdLabel = document.createElement('td');
-      tdLabel.className = 'tt-period-col';
+      var th = document.createElement('th');
+      th.scope = 'col';
+      if (pi === currentPeriod) th.classList.add('tt-current');
 
       var nameSpan = document.createElement('span');
       nameSpan.className = 'tt-period-name';
@@ -814,44 +801,69 @@ var BULK_OPEN = (function () {
       timeSpan.className = 'tt-period-time';
       timeSpan.textContent = period.time;
 
-      if (isCurrent) {
+      if (pi === currentPeriod) {
         var badge = document.createElement('span');
         badge.className = 'tt-now-badge';
         badge.textContent = 'NOW';
         nameSpan.appendChild(badge);
       }
 
-      tdLabel.appendChild(nameSpan);
-      tdLabel.appendChild(timeSpan);
+      th.appendChild(nameSpan);
+      th.appendChild(timeSpan);
+      headRow.appendChild(th);
+    });
+
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    // --- <tbody> ---
+    // One row per day; first cell = day name, remaining cells = subjects per period
+    var tbody = document.createElement('tbody');
+
+    days.forEach(function (day, di) {
+      var isToday = (di === todayIdx);
+
+      var tr = document.createElement('tr');
+      if (isToday) tr.classList.add('tt-today');
+
+      // Day label cell
+      var tdLabel = document.createElement('td');
+      tdLabel.className = 'tt-period-col';
+      if (isToday) tdLabel.classList.add('tt-today');
+      tdLabel.textContent = day;
       tr.appendChild(tdLabel);
 
-      // Subject cells per day
-      days.forEach(function (day, di) {
+      // Subject cells per period
+      periods.forEach(function (period, pi) {
+        var isBreakOrLunch = (period.name === 'Break' || period.name === 'Lunch');
+        var isCurrent = (pi === currentPeriod);
+
         var td = document.createElement('td');
-        if (di === todayIdx) td.classList.add('tt-today');
+        if (isBreakOrLunch) td.classList.add('tt-row-break');
+        if (isCurrent)      td.classList.add('tt-current');
+        if (isToday)        td.classList.add('tt-today');
 
         if (!isBreakOrLunch) {
           var subjects = schedule[day];
-          var subj = (subjects && subjects[scheduleIdx]) ? subjects[scheduleIdx] : '';
+          var schedIdx = periodScheduleIdx[pi];
+          var subj = (subjects && schedIdx !== -1 && subjects[schedIdx]) ? subjects[schedIdx] : '';
           td.textContent = subj;
         }
         tr.appendChild(td);
       });
 
       tbody.appendChild(tr);
-
-      if (!isBreakOrLunch) scheduleIdx++;
     });
 
     table.appendChild(tbody);
     scroll.appendChild(table);
     container.appendChild(scroll);
 
-    // Scroll today's column into view on mobile
+    // Scroll today's row into view on mobile
     if (todayIdx !== -1) {
-      var todayTh = table.querySelector('th.tt-today');
-      if (todayTh) {
-        setTimeout(function () { todayTh.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 100);
+      var todayTr = tbody.querySelector('tr.tt-today');
+      if (todayTr) {
+        setTimeout(function () { todayTr.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 100);
       }
     }
   }

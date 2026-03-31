@@ -865,6 +865,14 @@ footer {
   background: var(--book-divider);
 }
 
+/* Break / Lunch columns (new layout: td.tt-row-break per cell) */
+.tt-table tbody td.tt-row-break {
+  background: var(--book-divider);
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.82rem;
+}
+
 /* Current period highlight */
 .tt-table tbody tr.tt-current td {
   background: var(--accent-shadow);
@@ -884,6 +892,16 @@ footer {
   outline-offset: -1px;
 }
 
+/* Current period column (new layout: td.tt-current per cell) */
+.tt-table tbody td.tt-current {
+  background: var(--accent-shadow);
+}
+
+.tt-table thead th.tt-current {
+  outline: 2px solid rgba(255,255,255,0.6);
+  outline-offset: -2px;
+}
+
 /* Today column highlight via data-today header */
 .tt-table th.tt-today,
 .tt-table td.tt-today {
@@ -899,6 +917,16 @@ footer {
 }
 
 .tt-table tbody tr.tt-current td.tt-today {
+  background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
+}
+
+/* New layout: today row + break/lunch column */
+.tt-table tbody td.tt-today.tt-row-break {
+  background: color-mix(in srgb, var(--accent) 8%, var(--book-divider));
+}
+
+/* New layout: today row + current period column */
+.tt-table tbody td.tt-today.tt-current {
   background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
 }
 
@@ -960,6 +988,15 @@ footer {
   background: rgba(0, 122, 255, 0.13);
 }
 
+/* ios new layout */
+[data-tt-theme="ios"] .tt-table tbody td.tt-row-break {
+  background: rgba(0, 122, 255, 0.07);
+}
+
+[data-tt-theme="ios"] .tt-table tbody td.tt-current {
+  background: rgba(0, 122, 255, 0.13);
+}
+
 /* — Minimal — */
 [data-tt-theme="minimal"] .tt-table {
   box-shadow: none;
@@ -987,6 +1024,16 @@ footer {
 }
 
 [data-tt-theme="minimal"] .tt-table tbody tr.tt-current {
+  outline: none;
+}
+
+/* minimal new layout */
+[data-tt-theme="minimal"] .tt-table tbody td.tt-current {
+  background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
+  border-top: 3px solid var(--accent);
+}
+
+[data-tt-theme="minimal"] .tt-table thead th.tt-current {
   outline: none;
 }
 
@@ -1056,6 +1103,20 @@ footer {
 }
 
 [data-tt-theme="dark"] .tt-table tbody tr.tt-current td.tt-today {
+  background: rgba(96, 165, 250, 0.2);
+}
+
+/* dark new layout */
+[data-tt-theme="dark"] .tt-table tbody td.tt-row-break {
+  background: #252a3d;
+  color: #64748b;
+}
+
+[data-tt-theme="dark"] .tt-table tbody td.tt-current {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+[data-tt-theme="dark"] .tt-table tbody td.tt-today.tt-current {
   background: rgba(96, 165, 250, 0.2);
 }
 
