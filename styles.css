@@ -780,17 +780,17 @@ footer {
 .tt-table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 600px;
+  min-width: 900px;
   background: var(--card-bg);
   border-radius: 14px;
   overflow: hidden;
   transition: background-color var(--transition);
 }
 
-/* Column widths */
-.tt-table .tt-period-col {
-  width: 130px;
-  min-width: 110px;
+/* Day label column width */
+.tt-table .tt-day-col {
+  width: 110px;
+  min-width: 90px;
 }
 
 /* Header row */
@@ -813,7 +813,8 @@ footer {
 }
 
 /* Body cells */
-.tt-table tbody td {
+.tt-table tbody td,
+.tt-table tbody th {
   border: 1px solid var(--border);
   padding: 0.55rem 0.5rem;
   text-align: center;
@@ -824,48 +825,36 @@ footer {
   white-space: nowrap;
 }
 
-.tt-table tbody td:first-child {
+.tt-table tbody .tt-day-col {
   text-align: left;
   padding-left: 1rem;
   font-weight: 600;
   background: var(--bg);
-  min-width: 110px;
+  min-width: 90px;
 }
 
-.tt-table tbody tr:first-child td {
+.tt-table tbody tr:first-child td,
+.tt-table tbody tr:first-child th {
   border-top: none;
 }
 
-/* Period label + time */
+/* Period label + time in column headers */
 .tt-period-name {
   display: block;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--text);
   transition: color var(--transition);
 }
 
 .tt-period-time {
   display: block;
   font-size: 0.73rem;
-  color: var(--text-muted);
   margin-top: 1px;
+  opacity: 0.78;
   transition: color var(--transition);
 }
 
-/* Break / Lunch rows */
-.tt-table tbody tr.tt-row-break td {
-  background: var(--book-divider);
-  color: var(--text-muted);
-  font-style: italic;
-  font-size: 0.82rem;
-}
-
-.tt-table tbody tr.tt-row-break td:first-child {
-  background: var(--book-divider);
-}
-
-/* Break / Lunch columns (new layout: td.tt-row-break per cell) */
+/* Break / Lunch columns */
 .tt-table tbody td.tt-row-break {
   background: var(--book-divider);
   color: var(--text-muted);
@@ -873,26 +862,7 @@ footer {
   font-size: 0.82rem;
 }
 
-/* Current period highlight */
-.tt-table tbody tr.tt-current td {
-  background: var(--accent-shadow);
-}
-
-.tt-table tbody tr.tt-current td:first-child {
-  background: var(--accent-shadow);
-  color: var(--accent);
-}
-
-.tt-table tbody tr.tt-current td:first-child .tt-period-name {
-  color: var(--accent);
-}
-
-.tt-table tbody tr.tt-current {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-/* Current period column (new layout: td.tt-current per cell) */
+/* Current period column highlight */
 .tt-table tbody td.tt-current {
   background: var(--accent-shadow);
 }
@@ -902,30 +872,22 @@ footer {
   outline-offset: -2px;
 }
 
-/* Today column highlight via data-today header */
+/* Today row highlight */
 .tt-table th.tt-today,
 .tt-table td.tt-today {
   background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
 }
 
-.tt-table td.tt-today:first-child {
+.tt-table .tt-today.tt-day-col {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
 }
 
-.tt-table tbody tr.tt-row-break td.tt-today {
-  background: color-mix(in srgb, var(--accent) 8%, var(--book-divider));
-}
-
-.tt-table tbody tr.tt-current td.tt-today {
-  background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
-}
-
-/* New layout: today row + break/lunch column */
+/* Today row + break/lunch column */
 .tt-table tbody td.tt-today.tt-row-break {
   background: color-mix(in srgb, var(--accent) 8%, var(--book-divider));
 }
 
-/* New layout: today row + current period column */
+/* Today row + current period column */
 .tt-table tbody td.tt-today.tt-current {
   background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
 }
@@ -943,6 +905,18 @@ footer {
   vertical-align: middle;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+/* Badge is inside a header <th> (blue bg in default/ios themes) — flip to white pill */
+.tt-table thead th .tt-now-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent);
+}
+
+/* Minimal tt-theme has a light header — keep blue badge */
+[data-tt-theme="minimal"] .tt-table thead th .tt-now-badge {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* ==============================
@@ -963,32 +937,16 @@ footer {
   -webkit-backdrop-filter: blur(8px);
 }
 
-[data-tt-theme="ios"] .tt-table tbody td {
+[data-tt-theme="ios"] .tt-table tbody td,
+[data-tt-theme="ios"] .tt-table tbody th {
   background: rgba(255, 255, 255, 0.45);
   border-color: rgba(60, 60, 67, 0.1);
 }
 
-[data-tt-theme="ios"] .tt-table tbody td:first-child {
+[data-tt-theme="ios"] .tt-table tbody .tt-day-col {
   background: rgba(242, 242, 247, 0.6);
 }
 
-[data-tt-theme="ios"] .tt-table tbody tr.tt-row-break td {
-  background: rgba(0, 122, 255, 0.07);
-}
-
-[data-tt-theme="ios"] .tt-table tbody tr.tt-row-break td:first-child {
-  background: rgba(0, 122, 255, 0.07);
-}
-
-[data-tt-theme="ios"] .tt-table tbody tr.tt-current td {
-  background: rgba(0, 122, 255, 0.13);
-}
-
-[data-tt-theme="ios"] .tt-table tbody tr.tt-current td:first-child {
-  background: rgba(0, 122, 255, 0.13);
-}
-
-/* ios new layout */
 [data-tt-theme="ios"] .tt-table tbody td.tt-row-break {
   background: rgba(0, 122, 255, 0.07);
 }
@@ -1013,21 +971,21 @@ footer {
   letter-spacing: 0.06em;
 }
 
-[data-tt-theme="minimal"] .tt-table tbody td {
+[data-tt-theme="minimal"] .tt-period-name {
+  color: var(--text);
+}
+
+[data-tt-theme="minimal"] .tt-period-time {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+[data-tt-theme="minimal"] .tt-table tbody td,
+[data-tt-theme="minimal"] .tt-table tbody th {
   border-color: var(--border);
   font-size: 0.85rem;
 }
 
-[data-tt-theme="minimal"] .tt-table tbody tr.tt-current td {
-  background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
-  border-left: 3px solid var(--accent);
-}
-
-[data-tt-theme="minimal"] .tt-table tbody tr.tt-current {
-  outline: none;
-}
-
-/* minimal new layout */
 [data-tt-theme="minimal"] .tt-table tbody td.tt-current {
   background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
   border-top: 3px solid var(--accent);
@@ -1052,13 +1010,14 @@ footer {
   border-bottom: 2px solid #2d3748;
 }
 
-[data-tt-theme="dark"] .tt-table tbody td {
+[data-tt-theme="dark"] .tt-table tbody td,
+[data-tt-theme="dark"] .tt-table tbody th {
   background: #1e2130;
   color: #e2e8f0;
   border-color: #2d3748;
 }
 
-[data-tt-theme="dark"] .tt-table tbody td:first-child {
+[data-tt-theme="dark"] .tt-table tbody .tt-day-col {
   background: #161b27;
   color: #94a3b8;
 }
@@ -1069,47 +1028,17 @@ footer {
 
 [data-tt-theme="dark"] .tt-period-time {
   color: #64748b;
+  opacity: 1;
 }
 
-[data-tt-theme="dark"] .tt-table tbody tr.tt-row-break td {
+[data-tt-theme="dark"] .tt-table tbody td.tt-row-break {
   background: #252a3d;
   color: #64748b;
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-row-break td:first-child {
-  background: #252a3d;
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-current td {
-  background: rgba(96, 165, 250, 0.12);
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-current td:first-child {
-  background: rgba(96, 165, 250, 0.12);
-  color: #60a5fa;
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-current td:first-child .tt-period-name {
-  color: #60a5fa;
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-current {
-  outline-color: #60a5fa;
 }
 
 [data-tt-theme="dark"] .tt-table th.tt-today,
 [data-tt-theme="dark"] .tt-table td.tt-today {
   background: rgba(96, 165, 250, 0.08);
-}
-
-[data-tt-theme="dark"] .tt-table tbody tr.tt-current td.tt-today {
-  background: rgba(96, 165, 250, 0.2);
-}
-
-/* dark new layout */
-[data-tt-theme="dark"] .tt-table tbody td.tt-row-break {
-  background: #252a3d;
-  color: #64748b;
 }
 
 [data-tt-theme="dark"] .tt-table tbody td.tt-current {
