@@ -729,6 +729,34 @@ var BULK_OPEN = (function () {
     return days.indexOf(todayName);
   }
 
+  /**
+   * Shorten known long subject names and set a title attribute for the full name.
+   * @param {HTMLElement} el   - The table cell element to populate.
+   * @param {string}      name - The raw subject name from the schedule data.
+   */
+  function abbreviateSubject(el, name) {
+    var MAX_SUBJECT_LENGTH = 16;
+    if (!name) return;
+    var normalized = name.replace(/\s+/g, ' ').trim();
+    var abbrevMap = {
+      'Chemistry/ Physics Practical': 'Chem/Phys Prac',
+      'Chemistry/Physics Practical':  'Chem/Phys Prac',
+      'Biology/   Chemistry Practical': 'Bio/Chem Prac',
+      'Biology/ Chemistry Practical':  'Bio/Chem Prac',
+      'Biology/Chemistry Practical':   'Bio/Chem Prac'
+    };
+    var short = abbrevMap[normalized] || abbrevMap[name];
+    if (short) {
+      el.textContent = short;
+      el.title = normalized;
+    } else if (normalized.length > MAX_SUBJECT_LENGTH) {
+      el.textContent = normalized;
+      el.title = normalized;
+    } else {
+      el.textContent = normalized;
+    }
+  }
+
   /** Build and inject the timetable into #tt-container. */
   function renderTimetable(data) {
     var days    = data.days    || [];
@@ -848,7 +876,7 @@ var BULK_OPEN = (function () {
           var subjects = schedule[day];
           var schedIdx = periodScheduleIdx[pi];
           var subj = (subjects && schedIdx !== -1 && subjects[schedIdx]) ? subjects[schedIdx] : '';
-          td.textContent = subj;
+          abbreviateSubject(td, subj);
         }
         tr.appendChild(td);
       });
