@@ -783,7 +783,7 @@ var BULK_OPEN = (function () {
     var headRow = document.createElement('tr');
 
     var thDay = document.createElement('th');
-    thDay.className = 'tt-period-col';
+    thDay.className = 'tt-day-col';
     thDay.scope = 'col';
     thDay.textContent = 'Day';
     headRow.appendChild(thDay);
@@ -826,9 +826,10 @@ var BULK_OPEN = (function () {
       var tr = document.createElement('tr');
       if (isToday) tr.classList.add('tt-today');
 
-      // Day label cell
-      var tdLabel = document.createElement('td');
-      tdLabel.className = 'tt-period-col';
+      // Day label cell (row header for accessibility)
+      var tdLabel = document.createElement('th');
+      tdLabel.className = 'tt-day-col';
+      tdLabel.scope = 'row';
       if (isToday) tdLabel.classList.add('tt-today');
       tdLabel.textContent = day;
       tr.appendChild(tdLabel);
@@ -859,11 +860,11 @@ var BULK_OPEN = (function () {
     scroll.appendChild(table);
     container.appendChild(scroll);
 
-    // Scroll today's row into view on mobile
-    if (todayIdx !== -1) {
-      var todayTr = tbody.querySelector('tr.tt-today');
-      if (todayTr) {
-        setTimeout(function () { todayTr.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 100);
+    // Scroll current period's column header into view on mobile (horizontal)
+    if (currentPeriod !== -1) {
+      var currentTh = thead.querySelector('th.tt-current');
+      if (currentTh) {
+        setTimeout(function () { currentTh.scrollIntoView({ inline: 'nearest', block: 'nearest' }); }, 100);
       }
     }
   }
