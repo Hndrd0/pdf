@@ -813,14 +813,20 @@ footer {
 }
 
 /* Body cells */
+.tt-table tbody tr {
+  height: 50px;
+}
+
 .tt-table tbody td,
 .tt-table tbody th {
   border: 1px solid var(--border);
-  padding: 0.55rem 0.5rem;
+  padding: 0.55rem 0.3rem;
   text-align: center;
   font-size: 0.82rem;
+  line-height: 1.1;
   color: var(--text);
   background: var(--card-bg);
+  vertical-align: middle;
   transition: background-color var(--transition), color var(--transition), border-color var(--transition);
   white-space: normal;
   word-wrap: break-word;
@@ -865,12 +871,11 @@ footer {
 
 /* Current period column highlight */
 .tt-table tbody td.tt-current {
-  background: var(--accent-shadow);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .tt-table thead th.tt-current {
-  outline: 2px solid rgba(255,255,255,0.6);
-  outline-offset: -2px;
+  background: color-mix(in srgb, #fff 18%, var(--accent));
 }
 
 /* Today row highlight */
@@ -988,8 +993,7 @@ footer {
 }
 
 [data-tt-theme="minimal"] .tt-table tbody td.tt-current {
-  background: color-mix(in srgb, var(--accent) 6%, var(--card-bg));
-  border-top: 3px solid var(--accent);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 [data-tt-theme="minimal"] .tt-table thead th.tt-current {
