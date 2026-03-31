@@ -1,6 +1,6 @@
 {
-  "_notes": "Time format: school hours run 8:00-13:10 (1:10 PM). Times with hour < 7 are treated as PM (e.g. '1:10' → 13:10). Keep all period times in the range 7:00-23:59 to avoid ambiguity.",
-  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  "_notes": "Time format: school hours run 8:00-13:10 (1:10 PM). Times with hour < 7 are treated as PM (e.g. '1:10' → 13:10). Keep all period times in the range 7:00-23:59 to avoid ambiguity. Each schedule array has exactly 8 entries mapping to P1-P8 (Break and Lunch have no subject slot).",
+  "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
   "periods": [
     { "name": "P1", "time": "8:00 - 8:35" },
     { "name": "P2", "time": "8:35 - 9:10" },
@@ -14,11 +14,10 @@
     { "name": "Lunch", "time": "12:40 - 1:10" }
   ],
   "schedule": {
-    "Monday":    ["SSc", "SSc", "English", "Hindi", "", "Chemistry", "Maths", "Computer", "Games"],
-    "Tuesday":   ["Maths", "Maths", "Hindi", "Chemistry", "", "English", "Computer", "Biology", "SSc"],
-    "Wednesday": ["Computer", "English", "English", "Biology", "", "Maths", "SSc", "Physics", "Hindi"],
-    "Thursday":  ["Hindi", "Maths", "Chemistry", "English", "", "SSc", "Physics", "Chemistry/Physics Practical", "M/D/T/I/A"],
-    "Friday":    ["Biology", "Hindi", "Hindi", "Physics", "", "Biology/Chemistry Practical", "English", "Maths", "SSc"],
-    "Saturday":  ["Maths", "Computer", "SSc", "English", "", "Physics", "Hindi", "Maths", ""]
+    "Monday":    ["SSc", "SSc", "English", "Hindi", "Chemistry", "Maths", "Computer", "Games"],
+    "Tuesday":   ["Maths", "Maths", "Hindi", "Chemistry", "English", "Computer", "Biology", "SSc"],
+    "Wednesday": ["Computer", "English", "English", "Biology", "Maths", "SSc", "Physics", "Hindi"],
+    "Thursday":  ["Hindi", "Maths", "Chemistry", "English", "SSc", "Physics", "Chemistry/Physics Practical", "M/D/T/I/A"],
+    "Friday":    ["Biology", "Hindi", "Hindi", "Physics", "Biology/Chemistry Practical", "English", "Maths", "SSc"]
   }
 }
