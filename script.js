@@ -1253,6 +1253,14 @@ var BULK_OPEN = (function () {
 
         canvas.width  = viewport.width;
         canvas.height = viewport.height;
+        // Set explicit CSS size so the canvas is never CSS-scaled by max-width rules,
+        // which would misalign the absolutely-positioned text layer.
+        canvas.style.width  = viewport.width  + "px";
+        canvas.style.height = viewport.height + "px";
+
+        // Size the text layer div to exactly match the canvas CSS footprint.
+        textLayerDiv.style.width  = viewport.width  + "px";
+        textLayerDiv.style.height = viewport.height + "px";
 
         var ctx = canvas.getContext("2d");
         page.render({ canvasContext: ctx, viewport: viewport }).promise
@@ -1261,6 +1269,8 @@ var BULK_OPEN = (function () {
           })
           .then(function (textContent) {
             if (pdfDoc !== currentPdfDoc) return;
+            // Clear any previous content before (re-)rendering.
+            textLayerDiv.innerHTML = "";
             window.pdfjsLib.renderTextLayer({
               textContentSource: textContent,
               container:         textLayerDiv,
