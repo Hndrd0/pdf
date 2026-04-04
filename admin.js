@@ -285,7 +285,10 @@
 
     for (var i = 0; i < pendingFiles.length; i++) {
       var f = pendingFiles[i];
-      var fileId = (subject + '_' + f.name).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 36);
+      var safeName = (subject + '_' + f.name).replace(/[^a-zA-Z0-9._-]/g, '_');
+      // Append random suffix to avoid collisions on long/similar names
+      var suffix = '_' + Math.random().toString(36).slice(2, 8);
+      var fileId = (safeName.slice(0, 36 - suffix.length) + suffix);
       var statusEl = el('status-' + i);
       var progressEl = el('progress-' + i);
 
@@ -608,7 +611,7 @@
       }
 
       var content = JSON.stringify(timetableData, null, 2);
-      var encoded = btoa(unescape(encodeURIComponent(content)));
+      var encoded = btoa(String.fromCharCode.apply(null, new TextEncoder().encode(content)));
 
       var body = {
         message: 'Update timetable.json via admin panel',
