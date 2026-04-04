@@ -49,6 +49,17 @@
   <script src="config.js"></script>
   <script src="script.js"></script>
   <script>
+    // Hidden admin trigger: type "admin" anywhere on the page
+    (function () {
+      var buf = '';
+      document.addEventListener('keypress', function (e) {
+        buf += e.key.toLowerCase();
+        if (buf.length > 5) buf = buf.slice(-5);
+        if (buf === 'admin') { buf = ''; window.location.href = 'admin.html'; }
+      });
+    })();
+  </script>
+  <script>
     // Build subject cards from config using DOM methods (avoids XSS)
     (function () {
       var grid = document.getElementById("subjects-grid");
