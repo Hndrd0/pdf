@@ -974,6 +974,10 @@ var BULK_OPEN = (function () {
   var chatOpen       = false;
   var chatMsgCounter = 0;
 
+  var pageObserver  = null;   /* IntersectionObserver for main page wrappers */
+  var thumbObserver = null;   /* IntersectionObserver for thumbnail elements  */
+  var renderGen     = 0;      /* incremented on every zoom/rotation change to invalidate stale renders */
+
   /* ---- Lazy-load PDF.js from CDN ---- */
   function withPdfJs(cb) {
     if (pdfJsReady) { cb(); return; }
@@ -1434,6 +1438,9 @@ var BULK_OPEN = (function () {
     if (overlay) overlay.classList.remove("open");
     document.body.style.overflow = "";
 
+    if (pageObserver)  { pageObserver.disconnect();  pageObserver  = null; }
+    if (thumbObserver) { thumbObserver.disconnect(); thumbObserver = null; }
+
     if (currentPdfDoc) {
       currentPdfDoc.destroy();
       currentPdfDoc = null;
@@ -1463,146 +1470,191 @@ var BULK_OPEN = (function () {
     });
   }
 
-  /* ---- Render all pages sequentially with text layers ---- */
+  /* ---- Render all pages — lazy via IntersectionObserver ---- */
   function renderAllPages() {
     if (!currentPdfDoc) return;
     var wrap = document.getElementById("pdf-canvas-wrap");
     if (!wrap) return;
     wrap.innerHTML = "";
 
+    /* Invalidate any in-flight renders from a previous generation */
+    renderGen++;
+    var generation = renderGen;
+    var pdfDoc     = currentPdfDoc;
+
+    /* Disconnect any previous page observer */
+    if (pageObserver) { pageObserver.disconnect(); pageObserver = null; }
+
     var loadingEl = document.createElement("p");
     loadingEl.className   = "pdf-loading-indicator";
-    loadingEl.textContent = "Loading pages\u2026 (0\u202f/\u202f" + totalPages + ")";
+    loadingEl.textContent = "Loading\u2026";
     wrap.appendChild(loadingEl);
 
-    var pageNum    = 0;
-    var pdfDoc     = currentPdfDoc; // capture to detect stale renders
-    var scaleToUse = null;          // determined once from the first page
+    /* Fetch first page once to determine scale and placeholder dimensions */
+    pdfDoc.getPage(1).then(function (firstPage) {
+      if (pdfDoc !== currentPdfDoc || generation !== renderGen) return;
 
-    function renderNext() {
-      if (pdfDoc !== currentPdfDoc) return; // viewer was closed/reopened
-      pageNum++;
+      var baseViewport = firstPage.getViewport({ scale: 1, rotation: rotationDeg });
+      var scaleToUse;
 
-      if (pageNum > totalPages) {
-        if (loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
-        currentPage = 1;
-        updatePageIndicator();
-        renderThumbnails();
-        return;
+      if (currentScale !== null) {
+        scaleToUse = currentScale;
+      } else {
+        var wrapW = Math.max(1, wrap.clientWidth - CANVAS_H_PAD);
+        if (twoPageView) {
+          scaleToUse = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX,
+            ((wrapW / 2) - 12) / baseViewport.width * 0.95));
+        } else {
+          scaleToUse = computeFitWidthScale(baseViewport);
+        }
+      }
+      displayScale = scaleToUse;
+      updateZoomDisplay();
+
+      if (loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
+
+      /* Use first-page dimensions for all placeholders (corrected on actual render) */
+      var firstVp      = firstPage.getViewport({ scale: scaleToUse, rotation: rotationDeg });
+      var placeholderW = firstVp.width;
+      var placeholderH = firstVp.height;
+
+      /* Build all page wrapper elements with placeholders */
+      for (var p = 1; p <= totalPages; p++) {
+        (function (pageNum) {
+          var pageWrapper = document.createElement("div");
+          pageWrapper.className    = "pdf-page-wrapper";
+          pageWrapper.dataset.page = pageNum;
+
+          var placeholder = document.createElement("div");
+          placeholder.className    = "pdf-page-placeholder";
+          placeholder.style.width  = placeholderW + "px";
+          placeholder.style.height = placeholderH + "px";
+          pageWrapper.appendChild(placeholder);
+
+          if (twoPageView) {
+            if (pageNum === 1) {
+              var row1 = document.createElement("div");
+              row1.className = "pdf-pair-row pdf-pair-row--single";
+              row1.appendChild(pageWrapper);
+              wrap.appendChild(row1);
+            } else if (pageNum % 2 === 0) {
+              var pairRow = document.createElement("div");
+              pairRow.className = "pdf-pair-row";
+              pairRow.appendChild(pageWrapper);
+              wrap.appendChild(pairRow);
+            } else {
+              var rows    = wrap.querySelectorAll(".pdf-pair-row");
+              var lastRow = rows[rows.length - 1];
+              if (lastRow) {
+                lastRow.appendChild(pageWrapper);
+              } else {
+                wrap.appendChild(pageWrapper);
+              }
+            }
+          } else {
+            wrap.appendChild(pageWrapper);
+          }
+        })(p);
       }
 
-      loadingEl.textContent = "Loading pages\u2026 (" + pageNum + "\u202f/\u202f" + totalPages + ")";
+      /* Set up IntersectionObserver — observe ~1 page above/below */
+      pageObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var wrapper = entry.target;
+          if (wrapper.dataset.rendered === "true") return;
+          wrapper.dataset.rendered = "true"; /* mark early to prevent duplicate renders */
+          pageObserver.unobserve(wrapper);
+          renderPage(
+            parseInt(wrapper.dataset.page, 10),
+            wrapper,
+            scaleToUse,
+            pdfDoc,
+            generation
+          );
+        });
+      }, { root: wrap, rootMargin: "300px 0px", threshold: 0 });
 
-      var capturedPage = pageNum;
-      pdfDoc.getPage(capturedPage).then(function (page) {
-        if (pdfDoc !== currentPdfDoc) return;
+      var wrappers = wrap.querySelectorAll(".pdf-page-wrapper");
+      for (var i = 0; i < wrappers.length; i++) {
+        pageObserver.observe(wrappers[i]);
+      }
 
-        var baseViewport = page.getViewport({ scale: 1, rotation: rotationDeg });
-
-        /* Determine scale once from the first page */
-        if (scaleToUse === null) {
-          if (currentScale !== null) {
-            scaleToUse = currentScale;
-          } else {
-            /* auto fit-width; in two-page mode each page occupies roughly half */
-            var wrapW = Math.max(1, wrap.clientWidth - CANVAS_H_PAD);
-            if (twoPageView) {
-              scaleToUse = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX,
-                ((wrapW / 2) - 12) / baseViewport.width * 0.95));
-            } else {
-              scaleToUse = computeFitWidthScale(baseViewport);
-            }
-          }
-          displayScale = scaleToUse;
-          updateZoomDisplay();
-        }
-
-        var viewport     = page.getViewport({ scale: scaleToUse, rotation: rotationDeg });
-        var pageWrapper  = document.createElement("div");
-        pageWrapper.className    = "pdf-page-wrapper";
-        pageWrapper.dataset.page = capturedPage;
-
-        var canvas = document.createElement("canvas");
-        canvas.className    = "pdf-page-canvas";
-        canvas.width        = viewport.width;
-        canvas.height       = viewport.height;
-        canvas.style.width  = viewport.width  + "px";
-        canvas.style.height = viewport.height + "px";
-
-        var textLayerDiv = document.createElement("div");
-        textLayerDiv.className    = "textLayer";
-        textLayerDiv.style.width  = viewport.width  + "px";
-        textLayerDiv.style.height = viewport.height + "px";
-
-        pageWrapper.appendChild(canvas);
-        pageWrapper.appendChild(textLayerDiv);
-
-        /* Insert into layout — single column or two-page pairs */
-        if (twoPageView) {
-          if (capturedPage === 1) {
-            /* Page 1 stands alone in its own centered row */
-            var row1 = document.createElement("div");
-            row1.className = "pdf-pair-row pdf-pair-row--single";
-            row1.appendChild(pageWrapper);
-            wrap.insertBefore(row1, loadingEl);
-          } else if (capturedPage % 2 === 0) {
-            /* Even page: start a new pair row */
-            var pairRow = document.createElement("div");
-            pairRow.className = "pdf-pair-row";
-            pairRow.appendChild(pageWrapper);
-            wrap.insertBefore(pairRow, loadingEl);
-          } else {
-            /* Odd page (≥3): append to the last pair row */
-            var rows    = wrap.querySelectorAll(".pdf-pair-row");
-            var lastRow = rows[rows.length - 1];
-            if (lastRow) {
-              lastRow.appendChild(pageWrapper);
-            } else {
-              wrap.insertBefore(pageWrapper, loadingEl);
-            }
-          }
-        } else {
-          wrap.insertBefore(pageWrapper, loadingEl);
-        }
-
-        /* Render canvas and text layer */
-        var ctx = canvas.getContext("2d");
-        page.render({ canvasContext: ctx, viewport: viewport }).promise
-          .then(function () { return page.getTextContent(); })
-          .then(function (textContent) {
-            if (pdfDoc !== currentPdfDoc) return;
-            // Clear any previous content before (re-)rendering.
-            textLayerDiv.innerHTML = "";
-            window.pdfjsLib.renderTextLayer({
-              textContentSource: textContent,
-              container:         textLayerDiv,
-              viewport:          viewport,
-              textDivs:          []
-            });
-            renderNext();
-          })
-          .catch(function (err) {
-            if (err && err.name !== "RenderingCancelledException") {
-              console.error("Render error page " + capturedPage + ":", err);
-            }
-            renderNext();
-          });
-      }).catch(function (err) {
-        console.error("getPage error page " + capturedPage + ":", err);
-        renderNext();
-      });
-    }
-
-    renderNext();
+      currentPage = 1;
+      updatePageIndicator();
+      renderThumbnails();
+    }).catch(function (err) {
+      console.error("renderAllPages getPage(1) error:", err);
+    });
   }
 
-  /* ---- Thumbnail sidebar ---- */
+  /* ---- Render a single page into its wrapper (lazy) ---- */
+  function renderPage(pageNum, wrapper, scale, pdfDoc, generation) {
+    if (pdfDoc !== currentPdfDoc || generation !== renderGen) {
+      /* Stale render — reset so a future observer pass can retry */
+      wrapper.dataset.rendered = "false";
+      return;
+    }
+
+    pdfDoc.getPage(pageNum).then(function (page) {
+      if (pdfDoc !== currentPdfDoc || generation !== renderGen) return;
+
+      var viewport = page.getViewport({ scale: scale, rotation: rotationDeg });
+
+      var canvas = document.createElement("canvas");
+      canvas.className    = "pdf-page-canvas";
+      canvas.width        = viewport.width;
+      canvas.height       = viewport.height;
+      canvas.style.width  = viewport.width  + "px";
+      canvas.style.height = viewport.height + "px";
+
+      var textLayerDiv = document.createElement("div");
+      textLayerDiv.className    = "textLayer";
+      textLayerDiv.style.width  = viewport.width  + "px";
+      textLayerDiv.style.height = viewport.height + "px";
+
+      /* Swap placeholder for the real canvas + text layer */
+      var placeholder = wrapper.querySelector(".pdf-page-placeholder");
+      if (placeholder) wrapper.removeChild(placeholder);
+      wrapper.appendChild(canvas);
+      wrapper.appendChild(textLayerDiv);
+
+      var ctx = canvas.getContext("2d");
+      page.render({ canvasContext: ctx, viewport: viewport }).promise
+        .then(function () { return page.getTextContent(); })
+        .then(function (textContent) {
+          if (pdfDoc !== currentPdfDoc || generation !== renderGen) return;
+          textLayerDiv.innerHTML = "";
+          window.pdfjsLib.renderTextLayer({
+            textContentSource: textContent,
+            container:         textLayerDiv,
+            viewport:          viewport,
+            textDivs:          []
+          });
+        })
+        .catch(function (err) {
+          if (err && err.name !== "RenderingCancelledException") {
+            console.error("Render error page " + pageNum + ":", err);
+          }
+        });
+    }).catch(function (err) {
+      console.error("getPage error page " + pageNum + ":", err);
+      wrapper.dataset.rendered = "false"; /* allow retry on next scroll */
+    });
+  }
+
+  /* ---- Thumbnail sidebar — lazy via IntersectionObserver ---- */
   function renderThumbnails() {
     var sidebar = document.getElementById("pdf-thumbnail-sidebar");
     if (!sidebar || !currentPdfDoc) return;
     sidebar.innerHTML = "";
-    var pdfDoc = currentPdfDoc;
+    var pdfDoc     = currentPdfDoc;
+    var generation = renderGen;
 
+    /* Disconnect any previous thumbnail observer */
+    if (thumbObserver) { thumbObserver.disconnect(); thumbObserver = null; }
+
+    /* Build all thumb elements with placeholders */
     for (var p = 1; p <= totalPages; p++) {
       (function (pageNum) {
         var thumbEl = document.createElement("div");
@@ -1610,29 +1662,57 @@ var BULK_OPEN = (function () {
         thumbEl.dataset.page = pageNum;
         if (pageNum === currentPage) thumbEl.classList.add("active");
 
-        var canvas = document.createElement("canvas");
-        canvas.className = "pdf-thumb-canvas";
+        var placeholder = document.createElement("div");
+        placeholder.className = "pdf-thumb-placeholder";
 
         var label = document.createElement("span");
         label.className   = "pdf-thumb-label";
         label.textContent = pageNum;
 
-        thumbEl.appendChild(canvas);
+        thumbEl.appendChild(placeholder);
         thumbEl.appendChild(label);
         sidebar.appendChild(thumbEl);
 
         thumbEl.addEventListener("click", function () { scrollToPage(pageNum); });
+      })(p);
+    }
 
-        pdfDoc.getPage(pageNum).then(function (page) {
-          if (pdfDoc !== currentPdfDoc) return;
+    /* Lazy-render thumbnails as they scroll into the sidebar */
+    thumbObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        var thumbEl = entry.target;
+        if (thumbEl.dataset.rendered === "true") return;
+        thumbEl.dataset.rendered = "true";
+        thumbObserver.unobserve(thumbEl);
+
+        var pg = parseInt(thumbEl.dataset.page, 10);
+        pdfDoc.getPage(pg).then(function (page) {
+          if (pdfDoc !== currentPdfDoc || generation !== renderGen) return;
           var vp = page.getViewport({ scale: THUMB_SCALE, rotation: rotationDeg });
+
+          var canvas = document.createElement("canvas");
+          canvas.className    = "pdf-thumb-canvas";
           canvas.width        = vp.width;
           canvas.height       = vp.height;
           canvas.style.width  = vp.width  + "px";
           canvas.style.height = vp.height + "px";
+
+          var placeholder = thumbEl.querySelector(".pdf-thumb-placeholder");
+          if (placeholder) thumbEl.removeChild(placeholder);
+          thumbEl.insertBefore(canvas, thumbEl.querySelector(".pdf-thumb-label"));
+
           page.render({ canvasContext: canvas.getContext("2d"), viewport: vp });
+        }).catch(function (err) {
+          console.error("Thumb getPage error page " + pg + ":", err);
+          thumbEl.dataset.rendered = "false"; /* allow retry */
         });
-      })(p);
+      });
+    }, { root: sidebar, rootMargin: "200px 0px", threshold: 0 });
+
+    var thumbEls = sidebar.querySelectorAll(".pdf-thumb");
+    for (var i = 0; i < thumbEls.length; i++) {
+      thumbObserver.observe(thumbEls[i]);
     }
   }
 

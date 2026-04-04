@@ -1340,6 +1340,20 @@ footer {
   pointer-events: none; /* text layer sits on top and handles selection */
 }
 
+.pdf-page-placeholder {
+  display: block;
+  background: #3a3a3a;
+  border-radius: 2px;
+}
+
+.pdf-thumb-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: #3a3a3a;
+  border-radius: 2px;
+  min-height: 60px;
+}
+
 .pdf-page-wrapper .textLayer {
   position: absolute;
   top: 0;
