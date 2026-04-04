@@ -5,7 +5,7 @@
   /* ============================================================
      APPWRITE CONFIG
      ============================================================ */
-  var ENDPOINT   = 'https://cloud.appwrite.io/v1';
+  var ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
   var PROJECT_ID = '69d0f017002257fde008';
   var BUCKET_ID  = 'pdfs';
 
