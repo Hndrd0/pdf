@@ -1145,22 +1145,30 @@ footer {
   text-overflow: ellipsis;
 }
 
-.pdf-ask-ai-btn {
-  background: rgba(255, 255, 255, 0.18);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  color: var(--header-text);
-  border-radius: 8px;
-  padding: 0.4rem 0.9rem;
-  font-size: 0.88rem;
-  font-weight: 600;
+.pdf-ask-ai-fab {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
   cursor: pointer;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color var(--transition);
+  z-index: 10;
   flex-shrink: 0;
-  transition: background var(--transition), border-color var(--transition);
 }
 
-.pdf-ask-ai-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+.pdf-ask-ai-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
 /* ==============================
@@ -1196,7 +1204,7 @@ footer {
   position: absolute;
   top: 0;
   left: 0;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: all;
   /* width/height are set explicitly in JS to match the canvas */
 }
@@ -1225,15 +1233,7 @@ footer {
    PDF Page Navigation Bar
    ============================== */
 .pdf-page-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.65rem 1rem;
-  background: var(--footer-bg);
-  border-top: 1px solid var(--footer-border);
-  flex-shrink: 0;
-  transition: background-color var(--transition), border-color var(--transition);
+  display: none;
 }
 
 .pdf-page-btn {
@@ -1263,32 +1263,32 @@ footer {
   transform: none;
 }
 
-.pdf-page-indicator {
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  min-width: 7rem;
-  text-align: center;
-  transition: color var(--transition);
-}
-
 /* ==============================
    AI Chat Panel
    ============================== */
+@keyframes pdf-msg-fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .pdf-chat-panel {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 320px;
-  max-width: 92vw;
-  height: 100%;
-  background: var(--card-bg);
-  border-left: 1px solid var(--border);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+  top: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  width: 340px;
+  max-width: calc(100vw - 2rem);
+  height: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.3s ease, background-color var(--transition), border-color var(--transition);
-  z-index: 1;
+  transform: translateX(calc(100% + 1.5rem));
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color var(--transition), border-color var(--transition);
+  z-index: 10;
+  overflow: hidden;
 }
 
 [data-theme="ios"] .pdf-chat-panel {
@@ -1305,10 +1305,12 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1rem 0.85rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   transition: border-color var(--transition);
+  background: var(--card);
+  border-radius: 16px 16px 0 0;
 }
 
 .pdf-chat-title {
@@ -1346,12 +1348,13 @@ footer {
 
 .pdf-chat-msg {
   padding: 0.6rem 0.85rem;
-  border-radius: 12px;
+  border-radius: 16px;
   font-size: 0.9rem;
   line-height: 1.45;
   max-width: 88%;
   white-space: pre-wrap;
   word-break: break-word;
+  animation: pdf-msg-fadein 0.22s ease both;
 }
 
 .pdf-chat-msg--user {
@@ -1362,7 +1365,7 @@ footer {
 }
 
 .pdf-chat-msg--ai {
-  background: var(--bg);
+  background: var(--card);
   color: var(--text);
   align-self: flex-start;
   border-bottom-left-radius: 4px;
@@ -1385,8 +1388,8 @@ footer {
   background: var(--bg);
   color: var(--text);
   border: 1.5px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  padding: 0.5rem 0.85rem;
   font-size: 0.9rem;
   font-family: inherit;
   resize: none;
@@ -1402,23 +1405,27 @@ footer {
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 0.5rem 0.9rem;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  font-size: 1.05rem;
   cursor: pointer;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: opacity 0.2s, transform 0.15s, background-color var(--transition);
   align-self: flex-end;
 }
 
 .pdf-chat-send-btn:hover {
   opacity: 0.88;
-  transform: translateY(-1px);
+  transform: scale(1.1);
 }
 
 .pdf-chat-send-btn:active {
-  transform: translateY(0);
+  transform: scale(1);
 }
 
 .pdf-chat-send-btn:disabled {
@@ -1436,24 +1443,25 @@ footer {
     gap: 0.5rem;
   }
 
-  .pdf-ask-ai-btn {
-    padding: 0.35rem 0.65rem;
-    font-size: 0.82rem;
-  }
-
   .pdf-canvas-wrap {
     padding: 0.75rem;
   }
 
+  .pdf-ask-ai-fab {
+    bottom: 1rem;
+    right: 1rem;
+  }
+
   .pdf-chat-panel {
-    width: 100%;
-    max-width: 100%;
+    left: 0.5rem;
+    right: 0.5rem;
     top: auto;
-    bottom: 0;
-    height: 70%;
-    transform: translateY(100%);
-    border-left: none;
-    border-top: 1px solid var(--border);
+    bottom: 0.5rem;
+    width: auto;
+    max-width: none;
+    height: 72%;
+    transform: translateY(calc(100% + 1rem));
+    border-radius: 16px;
   }
 
   .pdf-chat-panel.open {
