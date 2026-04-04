@@ -490,7 +490,7 @@ var BULK_OPEN = (function () {
     return filtered.map(filename => {
       const displayName = escapeHtml(toDisplayName(filename));
       const url = folder + "/" + encodeURIComponent(filename);
-      return `<a class="file-card" href="${url}" target="_blank" rel="noopener noreferrer">
+      return `<a class="file-card" href="${url}" data-pdf-url="${url}" data-pdf-title="${displayName}">
         <span class="pdf-icon">📄</span>
         <span class="file-name">${displayName}</span>
       </a>`;
@@ -614,6 +614,19 @@ var BULK_OPEN = (function () {
     }
 
     render("");
+
+    // PDF viewer: intercept file-card clicks to open in-page viewer
+    const fileContainer = document.getElementById("file-list");
+    if (fileContainer) {
+      fileContainer.addEventListener("click", function (e) {
+        const card = e.target.closest("[data-pdf-url]");
+        if (!card) return;
+        e.preventDefault();
+        if (typeof window.openPdfViewer === "function") {
+          window.openPdfViewer(card.dataset.pdfUrl, card.dataset.pdfTitle);
+        }
+      });
+    }
 
     // Bulk open bar
     initBulkOpen(subject);
@@ -926,4 +939,431 @@ var BULK_OPEN = (function () {
   } else {
     initTimetablePage();
   }
+})();
+
+/* ============================================================
+   PART 5 — PDF Viewer & AI Chat
+   ============================================================ */
+(function () {
+  var APPWRITE_ENDPOINT = "YOUR_ENDPOINT_HERE"; // Replace with your Appwrite function URL
+  var PDFJS_VERSION = "3.11.174";
+  var PDFJS_CDN    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.min.js";
+  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.worker.min.js";
+  var FETCH_TIMEOUT_MS       = 30000; // 30 s timeout for AI requests
+  var PDF_MAX_SCALE          = 1.8;   // cap scale to avoid blurry over-rendering
+  var PDF_SCALE_PADDING      = 0.95;  // pull back 5% to leave visual breathing room
+  var PDF_MIN_SCALE          = 0.4;   // below this the rendered text is unreadable; fall back to 1.0
+  var PDF_DEFAULT_WIDTH      = 800;   // assumed container width when clientWidth is not yet available
+
+  var pdfJsReady   = false;
+  var pdfJsLoading = false;
+  var pdfJsQueue   = [];
+
+  var currentPdfUrl    = null;
+  var currentPdfDoc    = null;
+  var currentPage      = 1;
+  var totalPages       = 0;
+  var currentRenderTask = null;
+  var chatOpen         = false;
+  var chatMsgCounter   = 0;
+
+  /* ---- Lazy-load PDF.js from CDN ---- */
+  function withPdfJs(cb) {
+    if (pdfJsReady) { cb(); return; }
+    pdfJsQueue.push(cb);
+    if (pdfJsLoading) return;
+    pdfJsLoading = true;
+    var s = document.createElement("script");
+    s.src = PDFJS_CDN;
+    s.onload = function () {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      pdfJsReady   = true;
+      pdfJsLoading = false;
+      var q = pdfJsQueue.slice();
+      pdfJsQueue   = [];
+      q.forEach(function (fn) { fn(); });
+    };
+    s.onerror = function () {
+      pdfJsLoading = false;
+      pdfJsQueue   = [];
+      alert("Failed to load PDF viewer library. Please try again.");
+    };
+    document.head.appendChild(s);
+  }
+
+  /* ---- Build viewer DOM (injected once) ---- */
+  function buildViewerDom() {
+    /* Overlay */
+    var overlay = document.createElement("div");
+    overlay.id        = "pdf-viewer-overlay";
+    overlay.className = "pdf-viewer-overlay";
+
+    /* Main container (toolbar + canvas + page bar) */
+    var container = document.createElement("div");
+    container.className = "pdf-viewer-container";
+
+    /* Toolbar */
+    var toolbar = document.createElement("div");
+    toolbar.className = "pdf-viewer-toolbar";
+
+    var closeBtn = document.createElement("button");
+    closeBtn.className = "pdf-viewer-close-btn";
+    closeBtn.setAttribute("aria-label", "Close viewer");
+    closeBtn.textContent = "\u2715"; // ✕
+    closeBtn.addEventListener("click", closeViewer);
+
+    var titleEl = document.createElement("span");
+    titleEl.id        = "pdf-viewer-title";
+    titleEl.className = "pdf-viewer-title";
+
+    var askAiBtn = document.createElement("button");
+    askAiBtn.className = "pdf-ask-ai-btn";
+    askAiBtn.setAttribute("aria-label", "Ask AI about this PDF");
+    askAiBtn.innerHTML = "\uD83E\uDD16 Ask AI"; // 🤖
+
+    askAiBtn.addEventListener("click", toggleChat);
+
+    toolbar.appendChild(closeBtn);
+    toolbar.appendChild(titleEl);
+    toolbar.appendChild(askAiBtn);
+
+    /* Canvas container */
+    var canvasWrap = document.createElement("div");
+    canvasWrap.id        = "pdf-canvas-wrap";
+    canvasWrap.className = "pdf-canvas-wrap";
+
+    var canvas = document.createElement("canvas");
+    canvas.id = "pdf-canvas";
+    canvasWrap.appendChild(canvas);
+
+    /* Page navigation bar */
+    var pageBar = document.createElement("div");
+    pageBar.className = "pdf-page-bar";
+
+    var prevBtn = document.createElement("button");
+    prevBtn.className = "pdf-page-btn";
+    prevBtn.setAttribute("aria-label", "Previous page");
+    prevBtn.textContent = "\u2190 Prev"; // ← Prev
+    prevBtn.addEventListener("click", function () { goToPage(currentPage - 1); });
+
+    var pageIndicator = document.createElement("span");
+    pageIndicator.id        = "pdf-page-indicator";
+    pageIndicator.className = "pdf-page-indicator";
+    pageIndicator.textContent = "Loading\u2026";
+
+    var nextBtn = document.createElement("button");
+    nextBtn.className = "pdf-page-btn";
+    nextBtn.setAttribute("aria-label", "Next page");
+    nextBtn.textContent = "Next \u2192"; // Next →
+    nextBtn.addEventListener("click", function () { goToPage(currentPage + 1); });
+
+    pageBar.appendChild(prevBtn);
+    pageBar.appendChild(pageIndicator);
+    pageBar.appendChild(nextBtn);
+
+    container.appendChild(toolbar);
+    container.appendChild(canvasWrap);
+    container.appendChild(pageBar);
+    overlay.appendChild(container);
+
+    /* Chat panel */
+    var chatPanel = document.createElement("div");
+    chatPanel.id        = "pdf-chat-panel";
+    chatPanel.className = "pdf-chat-panel";
+
+    var chatHeader = document.createElement("div");
+    chatHeader.className = "pdf-chat-header";
+
+    var chatTitle = document.createElement("span");
+    chatTitle.className = "pdf-chat-title";
+    chatTitle.textContent = "\uD83E\uDD16 Ask AI"; // 🤖
+
+    var chatCloseBtn = document.createElement("button");
+    chatCloseBtn.className = "pdf-chat-close-btn";
+    chatCloseBtn.setAttribute("aria-label", "Close chat");
+    chatCloseBtn.textContent = "\u2715"; // ✕
+    chatCloseBtn.addEventListener("click", toggleChat);
+
+    chatHeader.appendChild(chatTitle);
+    chatHeader.appendChild(chatCloseBtn);
+
+    var chatMessages = document.createElement("div");
+    chatMessages.id        = "pdf-chat-messages";
+    chatMessages.className = "pdf-chat-messages";
+
+    var chatInputArea = document.createElement("div");
+    chatInputArea.className = "pdf-chat-input-area";
+
+    var chatTextarea = document.createElement("textarea");
+    chatTextarea.id          = "pdf-chat-input";
+    chatTextarea.className   = "pdf-chat-input";
+    chatTextarea.placeholder = "Ask a question about this PDF\u2026";
+    chatTextarea.rows        = 2;
+    chatTextarea.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        doSendQuestion();
+      }
+    });
+
+    var sendBtn = document.createElement("button");
+    sendBtn.id        = "pdf-chat-send-btn";
+    sendBtn.className = "pdf-chat-send-btn";
+    sendBtn.textContent = "Send";
+    sendBtn.addEventListener("click", doSendQuestion);
+
+    chatInputArea.appendChild(chatTextarea);
+    chatInputArea.appendChild(sendBtn);
+
+    chatPanel.appendChild(chatHeader);
+    chatPanel.appendChild(chatMessages);
+    chatPanel.appendChild(chatInputArea);
+    overlay.appendChild(chatPanel);
+
+    document.body.appendChild(overlay);
+  }
+
+  /* ---- Open the viewer ---- */
+  function openViewer(pdfUrl, title) {
+    currentPdfUrl = pdfUrl;
+    currentPage   = 1;
+    totalPages    = 0;
+    chatOpen      = false;
+
+    var overlay   = document.getElementById("pdf-viewer-overlay");
+    var titleEl   = document.getElementById("pdf-viewer-title");
+    var chatPanel = document.getElementById("pdf-chat-panel");
+    var messages  = document.getElementById("pdf-chat-messages");
+
+    if (titleEl)   titleEl.textContent = title || "";
+    if (chatPanel) chatPanel.classList.remove("open");
+    if (messages)  messages.innerHTML  = "";
+
+    updatePageIndicator();
+
+    var canvas = document.getElementById("pdf-canvas");
+    if (canvas) {
+      canvas.width  = 0;
+      canvas.height = 0;
+    }
+
+    if (overlay) overlay.classList.add("open");
+    document.body.style.overflow = "hidden";
+
+    withPdfJs(function () { loadPdf(pdfUrl); });
+  }
+
+  /* ---- Close the viewer ---- */
+  function closeViewer() {
+    var overlay = document.getElementById("pdf-viewer-overlay");
+    if (overlay) overlay.classList.remove("open");
+    document.body.style.overflow = "";
+
+    if (currentRenderTask) {
+      currentRenderTask.cancel();
+      currentRenderTask = null;
+    }
+    if (currentPdfDoc) {
+      currentPdfDoc.destroy();
+      currentPdfDoc = null;
+    }
+    currentPdfUrl = null;
+    chatOpen      = false;
+  }
+
+  /* ---- Load a PDF via PDF.js ---- */
+  function loadPdf(url) {
+    var absUrl;
+    try {
+      absUrl = new URL(url, window.location.href).href;
+    } catch (e) {
+      showCanvasError("Invalid PDF URL. Cannot open this file.");
+      return;
+    }
+    var loadingTask = window.pdfjsLib.getDocument(absUrl);
+    loadingTask.promise.then(function (pdfDoc) {
+      currentPdfDoc = pdfDoc;
+      totalPages    = pdfDoc.numPages;
+      updatePageIndicator();
+      renderPage(1);
+    }).catch(function (err) {
+      console.error("PDF load error:", err);
+      showCanvasError("Failed to load PDF. Please try again.");
+    });
+  }
+
+  /* ---- Render a single page ---- */
+  function renderPage(num) {
+    if (!currentPdfDoc) return;
+    currentPage = num;
+    updatePageIndicator();
+
+    if (currentRenderTask) {
+      currentRenderTask.cancel();
+      currentRenderTask = null;
+    }
+
+    currentPdfDoc.getPage(num).then(function (page) {
+      var canvas = document.getElementById("pdf-canvas");
+      var wrap   = document.getElementById("pdf-canvas-wrap");
+      if (!canvas || !wrap) return;
+
+      var baseViewport = page.getViewport({ scale: 1 });
+      var availWidth   = wrap.clientWidth || PDF_DEFAULT_WIDTH;
+      // Scale to fit the container width (cap at PDF_MAX_SCALE to avoid blurry over-scaling)
+      // then pull back by PDF_SCALE_PADDING for padding. Fall back to 1.0 if too narrow.
+      var scale        = Math.min(availWidth / baseViewport.width, PDF_MAX_SCALE) * PDF_SCALE_PADDING;
+      if (scale < PDF_MIN_SCALE) scale = 1.0; // minimum usable scale
+      var viewport = page.getViewport({ scale: scale });
+
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+
+      var ctx = canvas.getContext("2d");
+      var rt  = page.render({ canvasContext: ctx, viewport: viewport });
+      currentRenderTask = rt;
+      rt.promise.then(function () {
+        currentRenderTask = null;
+      }).catch(function (err) {
+        currentRenderTask = null;
+        if (err && err.name !== "RenderingCancelledException") {
+          console.error("Render error:", err);
+        }
+      });
+    }).catch(function (err) {
+      console.error("getPage error:", err);
+    });
+  }
+
+  function goToPage(num) {
+    if (!currentPdfDoc || num < 1 || num > totalPages) return;
+    var wrap = document.getElementById("pdf-canvas-wrap");
+    if (wrap) wrap.scrollTop = 0;
+    renderPage(num);
+  }
+
+  function updatePageIndicator() {
+    var el = document.getElementById("pdf-page-indicator");
+    if (!el) return;
+    el.textContent = totalPages > 0
+      ? "Page " + currentPage + " / " + totalPages
+      : "Loading\u2026";
+  }
+
+  function showCanvasError(msg) {
+    var wrap = document.getElementById("pdf-canvas-wrap");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    var p = document.createElement("p");
+    p.className   = "pdf-load-error";
+    p.textContent = msg;
+    wrap.appendChild(p);
+  }
+
+  /* ---- Chat panel ---- */
+  function toggleChat() {
+    var panel = document.getElementById("pdf-chat-panel");
+    if (!panel) return;
+    chatOpen = !chatOpen;
+    panel.classList.toggle("open", chatOpen);
+    if (chatOpen) {
+      var input = document.getElementById("pdf-chat-input");
+      if (input) input.focus();
+    }
+  }
+
+  function doSendQuestion() {
+    var inputEl = document.getElementById("pdf-chat-input");
+    var sendBtn = document.getElementById("pdf-chat-send-btn");
+    if (!inputEl) return;
+    var question = inputEl.value.trim();
+    if (!question) return;
+
+    appendChatMsg("user", question);
+    inputEl.value     = "";
+    inputEl.disabled  = true;
+    if (sendBtn) sendBtn.disabled = true;
+
+    var pdfUrl = "";
+    try {
+      if (currentPdfUrl) pdfUrl = new URL(currentPdfUrl, window.location.href).href;
+    } catch (e) { /* keep empty string */ }
+
+    var loadingId = appendChatMsg("ai", "\u2026"); // …
+
+    var controller = new AbortController();
+    var timeoutId  = setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    fetch(APPWRITE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question, pdfUrl: pdfUrl }),
+      signal: controller.signal
+    })
+    .then(function (res) {
+      if (!res.ok) throw new Error("Server error: " + res.status);
+      return res.json();
+    })
+    .then(function (data) {
+      // Accepts { answer: "..." } or { response: "..." } from the Appwrite function
+      updateChatMsg(loadingId, data.answer || data.response || JSON.stringify(data));
+    })
+    .catch(function (err) {
+      var msg = err.name === "AbortError"
+        ? "Request timed out. Please try again."
+        : "Error: " + err.message;
+      updateChatMsg(loadingId, msg);
+    })
+    .finally(function () {
+      clearTimeout(timeoutId);
+      if (inputEl) inputEl.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
+      if (inputEl) inputEl.focus();
+    });
+  }
+
+  function appendChatMsg(role, text) {
+    var messages = document.getElementById("pdf-chat-messages");
+    if (!messages) return null;
+    var id  = "pdf-cmsg-" + (++chatMsgCounter);
+    var div = document.createElement("div");
+    div.id        = id;
+    div.className = "pdf-chat-msg pdf-chat-msg--" + role;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return id;
+  }
+
+  function updateChatMsg(id, text) {
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    var messages = document.getElementById("pdf-chat-messages");
+    if (messages) messages.scrollTop = messages.scrollHeight;
+  }
+
+  /* ---- Keyboard shortcuts ---- */
+  document.addEventListener("keydown", function (e) {
+    var overlay = document.getElementById("pdf-viewer-overlay");
+    if (!overlay || !overlay.classList.contains("open")) return;
+    if (e.key === "Escape")     { closeViewer(); }
+    if (e.key === "ArrowLeft")  { goToPage(currentPage - 1); }
+    if (e.key === "ArrowRight") { goToPage(currentPage + 1); }
+  });
+
+  /* ---- Init ---- */
+  function init() {
+    buildViewerDom();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+
+  /* Expose for event delegation in Part 2 */
+  window.openPdfViewer = openViewer;
 })();
