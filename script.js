@@ -1230,7 +1230,7 @@ var BULK_OPEN = (function () {
 
       var textLayerDiv = document.createElement("div");
       textLayerDiv.className = "textLayer";
-      textLayerDiv.style.paddingRight = "10px";
+      textLayerDiv.style.paddingRight = "10px"; // prevent last-word clipping at right edge
 
       pageWrapper.appendChild(canvas);
       pageWrapper.appendChild(textLayerDiv);
