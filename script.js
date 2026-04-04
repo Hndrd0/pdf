@@ -945,9 +945,15 @@ var BULK_OPEN = (function () {
    PART 5 — PDF Viewer & AI Chat
    ============================================================ */
 (function () {
-  var APPWRITE_ENDPOINT = "YOUR_ENDPOINT_HERE";
-  var PDFJS_CDN    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  var APPWRITE_ENDPOINT = "YOUR_ENDPOINT_HERE"; // Replace with your Appwrite function URL
+  var PDFJS_VERSION = "3.11.174";
+  var PDFJS_CDN    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.min.js";
+  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.worker.min.js";
+  var FETCH_TIMEOUT_MS       = 30000; // 30 s timeout for AI requests
+  var PDF_MAX_SCALE          = 1.8;   // cap scale to avoid blurry over-rendering
+  var PDF_SCALE_PADDING      = 0.95;  // pull back 5% to leave visual breathing room
+  var PDF_MIN_SCALE          = 0.4;   // below this the rendered text is unreadable; fall back to 1.0
+  var PDF_DEFAULT_WIDTH      = 800;   // assumed container width when clientWidth is not yet available
 
   var pdfJsReady   = false;
   var pdfJsLoading = false;
@@ -1167,7 +1173,13 @@ var BULK_OPEN = (function () {
 
   /* ---- Load a PDF via PDF.js ---- */
   function loadPdf(url) {
-    var absUrl = new URL(url, window.location.href).href;
+    var absUrl;
+    try {
+      absUrl = new URL(url, window.location.href).href;
+    } catch (e) {
+      showCanvasError("Invalid PDF URL. Cannot open this file.");
+      return;
+    }
     var loadingTask = window.pdfjsLib.getDocument(absUrl);
     loadingTask.promise.then(function (pdfDoc) {
       currentPdfDoc = pdfDoc;
@@ -1197,9 +1209,11 @@ var BULK_OPEN = (function () {
       if (!canvas || !wrap) return;
 
       var baseViewport = page.getViewport({ scale: 1 });
-      var availWidth   = wrap.clientWidth || 800;
-      var scale        = Math.min(availWidth / baseViewport.width, 1.8) * 0.95;
-      if (scale < 0.4) scale = 1.0;
+      var availWidth   = wrap.clientWidth || PDF_DEFAULT_WIDTH;
+      // Scale to fit the container width (cap at PDF_MAX_SCALE to avoid blurry over-scaling)
+      // then pull back by PDF_SCALE_PADDING for padding. Fall back to 1.0 if too narrow.
+      var scale        = Math.min(availWidth / baseViewport.width, PDF_MAX_SCALE) * PDF_SCALE_PADDING;
+      if (scale < PDF_MIN_SCALE) scale = 1.0; // minimum usable scale
       var viewport = page.getViewport({ scale: scale });
 
       canvas.width  = viewport.width;
@@ -1270,28 +1284,38 @@ var BULK_OPEN = (function () {
     inputEl.disabled  = true;
     if (sendBtn) sendBtn.disabled = true;
 
-    var pdfUrl = currentPdfUrl
-      ? new URL(currentPdfUrl, window.location.href).href
-      : "";
+    var pdfUrl = "";
+    try {
+      if (currentPdfUrl) pdfUrl = new URL(currentPdfUrl, window.location.href).href;
+    } catch (e) { /* keep empty string */ }
 
     var loadingId = appendChatMsg("ai", "\u2026"); // …
+
+    var controller = new AbortController();
+    var timeoutId  = setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS);
 
     fetch(APPWRITE_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question, pdfUrl: pdfUrl })
+      body: JSON.stringify({ question: question, pdfUrl: pdfUrl }),
+      signal: controller.signal
     })
     .then(function (res) {
       if (!res.ok) throw new Error("Server error: " + res.status);
       return res.json();
     })
     .then(function (data) {
+      // Accepts { answer: "..." } or { response: "..." } from the Appwrite function
       updateChatMsg(loadingId, data.answer || data.response || JSON.stringify(data));
     })
     .catch(function (err) {
-      updateChatMsg(loadingId, "Error: " + err.message);
+      var msg = err.name === "AbortError"
+        ? "Request timed out. Please try again."
+        : "Error: " + err.message;
+      updateChatMsg(loadingId, msg);
     })
     .finally(function () {
+      clearTimeout(timeoutId);
       if (inputEl) inputEl.disabled = false;
       if (sendBtn) sendBtn.disabled = false;
       if (inputEl) inputEl.focus();
