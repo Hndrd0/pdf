@@ -1294,7 +1294,7 @@ footer {
 
 .pdf-thumb.active {
   border-color: var(--accent);
-  background: rgba(var(--accent), 0.1);
+  background: var(--accent-shadow);
 }
 
 .pdf-thumb-canvas {

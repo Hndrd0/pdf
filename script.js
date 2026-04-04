@@ -1540,7 +1540,7 @@ var BULK_OPEN = (function () {
         /* Insert into layout — single column or two-page pairs */
         if (twoPageView) {
           if (capturedPage === 1) {
-            /* Page 1 stands alone in its own centred row */
+            /* Page 1 stands alone in its own centered row */
             var row1 = document.createElement("div");
             row1.className = "pdf-pair-row pdf-pair-row--single";
             row1.appendChild(pageWrapper);
