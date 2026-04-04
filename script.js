@@ -1024,16 +1024,8 @@ var BULK_OPEN = (function () {
     titleEl.id        = "pdf-viewer-title";
     titleEl.className = "pdf-viewer-title";
 
-    var askAiBtn = document.createElement("button");
-    askAiBtn.className = "pdf-ask-ai-btn";
-    askAiBtn.setAttribute("aria-label", "Ask AI about this PDF");
-    askAiBtn.innerHTML = "\uD83E\uDD16 Ask AI"; // 🤖
-
-    askAiBtn.addEventListener("click", toggleChat);
-
     toolbar.appendChild(closeBtn);
     toolbar.appendChild(titleEl);
-    toolbar.appendChild(askAiBtn);
 
     /* Canvas container */
     var canvasWrap = document.createElement("div");
@@ -1064,21 +1056,23 @@ var BULK_OPEN = (function () {
       }
     });
 
-    /* Page bar — indicator only (no Prev/Next; navigation is via scroll) */
+    /* Page bar — kept for layout, no indicator */
     var pageBar = document.createElement("div");
     pageBar.className = "pdf-page-bar";
-
-    var pageIndicator = document.createElement("span");
-    pageIndicator.id        = "pdf-page-indicator";
-    pageIndicator.className = "pdf-page-indicator";
-    pageIndicator.textContent = "Loading\u2026";
-
-    pageBar.appendChild(pageIndicator);
 
     container.appendChild(toolbar);
     container.appendChild(canvasWrap);
     container.appendChild(pageBar);
     overlay.appendChild(container);
+
+    /* Floating AI button (FAB) */
+    var askAiFab = document.createElement("button");
+    askAiFab.id        = "pdf-ask-ai-fab";
+    askAiFab.className = "pdf-ask-ai-fab";
+    askAiFab.setAttribute("aria-label", "Ask AI about this PDF");
+    askAiFab.textContent = "\uD83E\uDD16"; // 🤖
+    askAiFab.addEventListener("click", toggleChat);
+    overlay.appendChild(askAiFab);
 
     /* Chat panel */
     var chatPanel = document.createElement("div");
@@ -1123,7 +1117,7 @@ var BULK_OPEN = (function () {
     var sendBtn = document.createElement("button");
     sendBtn.id        = "pdf-chat-send-btn";
     sendBtn.className = "pdf-chat-send-btn";
-    sendBtn.textContent = "Send";
+    sendBtn.innerHTML = "&#8593;"; // ↑ arrow
     sendBtn.addEventListener("click", doSendQuestion);
 
     chatInputArea.appendChild(chatTextarea);
@@ -1236,6 +1230,7 @@ var BULK_OPEN = (function () {
 
       var textLayerDiv = document.createElement("div");
       textLayerDiv.className = "textLayer";
+      textLayerDiv.style.paddingRight = "10px";
 
       pageWrapper.appendChild(canvas);
       pageWrapper.appendChild(textLayerDiv);
