@@ -1301,6 +1301,46 @@ footer {
   transform: translateX(0);
 }
 
+/* Resize handles */
+.pdf-chat-resize-left,
+.pdf-chat-resize-top {
+  position: absolute;
+  z-index: 20;
+  opacity: 0;
+  background: var(--accent);
+  transition: opacity 0.2s;
+}
+
+.pdf-chat-resize-left {
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  border-radius: 16px 0 0 16px;
+}
+
+.pdf-chat-resize-top {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+  border-radius: 16px 16px 0 0;
+}
+
+.pdf-chat-panel:hover .pdf-chat-resize-left,
+.pdf-chat-panel:hover .pdf-chat-resize-top {
+  opacity: 0.25;
+}
+
+.pdf-chat-resize-left:hover,
+.pdf-chat-resize-top:hover,
+.pdf-chat-resize-left:active,
+.pdf-chat-resize-top:active {
+  opacity: 0.55;
+}
+
 .pdf-chat-header {
   display: flex;
   align-items: center;
