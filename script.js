@@ -945,7 +945,7 @@ var BULK_OPEN = (function () {
    PART 5 — PDF Viewer & AI Chat
    ============================================================ */
 (function () {
-  var APPWRITE_ENDPOINT = "YOUR_ENDPOINT_HERE"; // Replace with your Appwrite function URL
+  var APPWRITE_ENDPOINT = "https://69d102ed003cf7a02ff8.sgp.appwrite.run/"; // Replace with your Appwrite function URL
   var PDFJS_VERSION = "3.11.174";
   var PDFJS_CDN    = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.min.js";
   var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/" + PDFJS_VERSION + "/pdf.worker.min.js";
