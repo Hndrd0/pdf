@@ -1225,7 +1225,7 @@ var BULK_OPEN = (function () {
         return;
       }
 
-      loadingEl.textContent = "Loading pages\u2026 (" + (pageNum - 1) + "\u202f/\u202f" + totalPages + ")";
+      loadingEl.textContent = "Loading pages\u2026 (" + pageNum + "\u202f/\u202f" + totalPages + ")";
 
       var pageWrapper = document.createElement("div");
       pageWrapper.className   = "pdf-page-wrapper";
@@ -1246,7 +1246,7 @@ var BULK_OPEN = (function () {
         if (pdfDoc !== currentPdfDoc) return;
 
         var baseViewport = page.getViewport({ scale: 1 });
-        var availWidth   = (wrap.clientWidth - 48) || PDF_DEFAULT_WIDTH;
+        var availWidth   = (wrap.clientWidth - 48) || PDF_DEFAULT_WIDTH; // 48 = combined horizontal padding (1.5rem × 2 sides)
         var scale        = Math.min(availWidth / baseViewport.width, PDF_MAX_SCALE) * PDF_SCALE_PADDING;
         if (scale < PDF_MIN_SCALE) scale = 1.0;
         var viewport = page.getViewport({ scale: scale });
