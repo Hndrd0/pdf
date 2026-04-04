@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Study PDFs</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ======== LOGIN PAGE ======== -->
+  <div class="login-page" id="login-page">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="icon">🔒</div>
+        <h1>Admin Panel</h1>
+        <p>Study PDFs — NCERT</p>
+      </div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Sign In</button>
+        <div class="login-error" id="login-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======== ADMIN LAYOUT ======== -->
+  <div class="admin-layout" id="admin-layout" style="display:none;">
+
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo-icon">📚</span>
+        <div>
+          <div class="logo-text">Study PDFs</div>
+          <span class="logo-sub">Admin Panel</span>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-section="dashboard">
+          <span class="nav-icon">🏠</span> Dashboard
+        </button>
+        <button class="nav-item" data-section="upload">
+          <span class="nav-icon">⬆️</span> Upload PDFs
+        </button>
+        <button class="nav-item" data-section="manage">
+          <span class="nav-icon">📁</span> Manage PDFs
+        </button>
+        <button class="nav-item" data-section="timetable">
+          <span class="nav-icon">🗓️</span> Timetable Editor
+        </button>
+        <button class="nav-item" data-section="settings">
+          <span class="nav-icon">⚙️</span> Settings
+        </button>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-info" id="user-info-display"></div>
+        <button class="btn btn-secondary btn-sm" id="logout-btn" style="width:100%;">🚪 Logout</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">☰</button>
+        <span class="topbar-title" id="topbar-title">Dashboard</span>
+      </header>
+
+      <div class="content-area">
+
+        <!-- ── DASHBOARD ── -->
+        <section class="section active" id="section-dashboard">
+          <h2 class="section-title">Dashboard</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📄</div>
+              <div class="stat-value" id="stat-total-pdfs">—</div>
+              <div class="stat-label">Total PDFs (config)</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div class="stat-value" id="stat-bucket-files">—</div>
+              <div class="stat-label">Files in Bucket</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💾</div>
+              <div class="stat-value" id="stat-storage">—</div>
+              <div class="stat-label">Storage Used</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Quick Links</div>
+            <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
+              <a href="index.html" target="_blank" class="btn btn-secondary btn-sm">🌐 View Site</a>
+              <a href="timetable.html" target="_blank" class="btn btn-secondary btn-sm">🗓️ View Timetable</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── UPLOAD PDFs ── -->
+        <section class="section" id="section-upload">
+          <h2 class="section-title">Upload PDFs</h2>
+          <div class="panel">
+            <div class="field-row">
+              <div class="field">
+                <label for="upload-subject">Subject / Path</label>
+                <select id="upload-subject">
+                  <option value="SC">Science (SC)</option>
+                  <option value="MATHS">Maths (MATHS)</option>
+                  <option value="ENGLISH/FIRSTFLIGHT">English — First Flight</option>
+                  <option value="ENGLISH/FOOTPRINTSWITHOUTFOOT">English — Footprints Without Feet</option>
+                  <option value="HINDI/SPARSH">Hindi — Sparsh</option>
+                  <option value="HINDI/SANCHAYAN">Hindi — Sanchayan</option>
+                  <option value="SSC/ECO">SSC — Economics</option>
+                  <option value="SSC/GEO">SSC — Geography</option>
+                  <option value="SSC/HISTORY">SSC — History</option>
+                  <option value="SSC/POLSC">SSC — Political Science</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="file-drop-zone" id="drop-zone">
+              <div class="drop-icon">📂</div>
+              <p><strong>Click to browse</strong> or drag & drop PDF files here</p>
+              <p style="margin-top:0.3rem;">Accepts multiple .pdf files</p>
+              <input type="file" class="file-input-hidden" id="file-input" multiple accept=".pdf" />
+            </div>
+
+            <div id="upload-queue" class="upload-queue"></div>
+
+            <div id="upload-alert" class="alert"></div>
+
+            <button class="btn btn-primary" id="upload-btn" style="width:auto;padding:0.65rem 1.5rem;" disabled>
+              ⬆️ Upload Files
+            </button>
+          </div>
+        </section>
+
+        <!-- ── MANAGE PDFs ── -->
+        <section class="section" id="section-manage">
+          <h2 class="section-title">Manage PDFs</h2>
+          <div class="panel">
+            <div class="file-list-header">
+              <input type="search" class="search-input" id="manage-search" placeholder="🔍 Search files…" />
+              <button class="btn btn-secondary btn-sm" id="manage-refresh-btn">🔄 Refresh</button>
+            </div>
+            <div id="manage-alert" class="alert"></div>
+            <div class="file-table-wrap">
+              <table class="file-table" id="file-table">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="file-table-body">
+                  <tr><td colspan="4"><div class="empty-state"><div class="empty-icon">📭</div><p>No files loaded yet</p></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── TIMETABLE EDITOR ── -->
+        <section class="section" id="section-timetable">
+          <h2 class="section-title">Timetable Editor</h2>
+          <div class="panel">
+            <div class="tt-actions">
+              <button class="btn btn-secondary btn-sm" id="tt-add-period-btn">➕ Add Period</button>
+              <button class="btn btn-secondary btn-sm" id="tt-add-day-btn">➕ Add Day</button>
+              <button class="btn btn-primary btn-sm" id="tt-save-btn">💾 Save to GitHub</button>
+            </div>
+            <div id="tt-alert" class="alert"></div>
+            <div class="tt-wrap">
+              <div id="tt-editor"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SETTINGS ── -->
+        <section class="section" id="section-settings">
+          <h2 class="section-title">Settings</h2>
+          <div class="panel">
+            <div class="panel-title">GitHub Integration</div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">
+              The GitHub token is stored in your browser's localStorage only and is sent directly to the GitHub API — it never touches any server.
+            </p>
+            <div class="field" style="max-width:460px;">
+              <label for="gh-token-input">GitHub Personal Access Token</label>
+              <input type="password" id="gh-token-input" placeholder="ghp_…" autocomplete="off" />
+            </div>
+            <div style="margin-top:0.8rem;display:flex;gap:0.6rem;">
+              <button class="btn btn-primary btn-sm" id="save-gh-token-btn">💾 Save Token</button>
+              <button class="btn btn-danger btn-sm" id="clear-gh-token-btn">🗑️ Clear Token</button>
+            </div>
+            <div id="settings-alert" class="alert" style="margin-top:0.8rem;"></div>
+          </div>
+        </section>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-content -->
+  </div><!-- /admin-layout -->
+
+  <!-- Appwrite SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@16/dist/iife/sdk.js"></script>
+  <!-- Site config (for subject list) -->
+  <script src="config.js"></script>
+  <!-- Admin logic -->
+  <script src="admin.js"></script>
+</body>
+</html>
