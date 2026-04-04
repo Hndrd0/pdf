@@ -1126,6 +1126,67 @@ var BULK_OPEN = (function () {
     chatPanel.appendChild(chatHeader);
     chatPanel.appendChild(chatMessages);
     chatPanel.appendChild(chatInputArea);
+
+    /* Resize handles */
+    var chatResizeLeft = document.createElement("div");
+    chatResizeLeft.className = "pdf-chat-resize-left";
+    var chatResizeTop = document.createElement("div");
+    chatResizeTop.className = "pdf-chat-resize-top";
+    chatPanel.appendChild(chatResizeLeft);
+    chatPanel.appendChild(chatResizeTop);
+
+    /* Restore saved panel size from localStorage */
+    (function () {
+      var CHAT_MIN_W = 280, CHAT_MAX_W = 600, CHAT_MIN_H = 300;
+      var savedW = parseInt(localStorage.getItem("pdfChatWidth"), 10);
+      var savedH = parseInt(localStorage.getItem("pdfChatHeight"), 10);
+      if (savedW >= CHAT_MIN_W && savedW <= CHAT_MAX_W) {
+        chatPanel.style.width = savedW + "px";
+      }
+      if (savedH >= CHAT_MIN_H && savedH <= Math.floor(window.innerHeight * 0.9)) {
+        chatPanel.style.top    = "auto";
+        chatPanel.style.height = savedH + "px";
+      }
+
+      /* Left-edge drag → resize width */
+      chatResizeLeft.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        var startX = e.clientX;
+        var startW = chatPanel.offsetWidth;
+        function onMove(ev) {
+          var newW = Math.min(CHAT_MAX_W, Math.max(CHAT_MIN_W, startW + (startX - ev.clientX)));
+          chatPanel.style.width = newW + "px";
+          localStorage.setItem("pdfChatWidth", newW);
+        }
+        function onUp() {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+
+      /* Top-edge drag → resize height */
+      chatResizeTop.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        var startY = e.clientY;
+        var startH = chatPanel.offsetHeight;
+        function onMove(ev) {
+          var maxH = Math.floor(window.innerHeight * 0.9);
+          var newH = Math.min(maxH, Math.max(CHAT_MIN_H, startH + (startY - ev.clientY)));
+          chatPanel.style.top    = "auto";
+          chatPanel.style.height = newH + "px";
+          localStorage.setItem("pdfChatHeight", newH);
+        }
+        function onUp() {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+    })();
+
     overlay.appendChild(chatPanel);
 
     document.body.appendChild(overlay);
@@ -1230,7 +1291,6 @@ var BULK_OPEN = (function () {
 
       var textLayerDiv = document.createElement("div");
       textLayerDiv.className = "textLayer";
-      textLayerDiv.style.paddingRight = "10px"; // prevent last-word clipping at right edge
 
       pageWrapper.appendChild(canvas);
       pageWrapper.appendChild(textLayerDiv);
