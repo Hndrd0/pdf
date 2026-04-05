@@ -567,6 +567,13 @@ var BULK_OPEN = (function () {
   }
 
   /**
+   * Build the Appwrite Storage view URL for a given file ID.
+   */
+  function buildAppwriteFileUrl(fileId) {
+    return AW_ENDPOINT + '/storage/buckets/' + AW_BUCKET_ID + '/files/' + fileId + '/view?project=' + AW_PROJECT_ID;
+  }
+
+  /**
    * Fetch files from Appwrite bucket and append any that match the current
    * subject (via file.metadata.subject) under a "📦 Additional Resources" divider.
    * Silently fails if Appwrite is unavailable or no matching files are found.
@@ -611,7 +618,7 @@ var BULK_OPEN = (function () {
     grid.className = 'file-grid';
 
     files.forEach(function (f) {
-      var url         = AW_ENDPOINT + '/storage/buckets/' + AW_BUCKET_ID + '/files/' + f.$id + '/view?project=' + AW_PROJECT_ID;
+      var url         = buildAppwriteFileUrl(f.$id);
       var displayName = escapeHtml(f.name || f.$id);
       var card        = document.createElement('a');
       card.className          = 'file-card';
@@ -685,9 +692,9 @@ var BULK_OPEN = (function () {
 
     // PDF viewer: intercept file-card clicks to open in-page viewer
     // Attach to file-section to also cover Appwrite-appended cards
-    const fileSection2 = document.getElementById("file-section");
-    if (fileSection2) {
-      fileSection2.addEventListener("click", function (e) {
+    const fileSectionEl = document.getElementById("file-section");
+    if (fileSectionEl) {
+      fileSectionEl.addEventListener("click", function (e) {
         const card = e.target.closest("[data-pdf-url]");
         if (!card) return;
         e.preventDefault();
