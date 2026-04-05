@@ -356,10 +356,16 @@ main {
   transition: color var(--transition), border-color var(--transition);
 }
 
+.appwrite-divider {
+  margin-top: 2rem;
+}
+
 .file-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 1rem;
+  justify-content: center;
+  justify-items: center;
 }
 
 .file-card {
@@ -374,6 +380,7 @@ main {
   box-shadow: 0 2px 8px var(--shadow);
   transition: transform 0.15s, box-shadow 0.15s, border-color var(--transition), background-color var(--transition), color var(--transition);
   border: 1.5px solid var(--border);
+  width: 100%;
 }
 
 [data-theme="ios"] .file-card {

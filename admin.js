@@ -285,10 +285,6 @@
 
     for (var i = 0; i < pendingFiles.length; i++) {
       var f = pendingFiles[i];
-      var safeName = (subject + '_' + f.name).replace(/[^a-zA-Z0-9._-]/g, '_');
-      // Append random suffix to avoid collisions on long/similar names
-      var suffix = '_' + Math.random().toString(36).slice(2, 8);
-      var fileId = (safeName.slice(0, 36 - suffix.length) + suffix);
       var statusEl = el('status-' + i);
       var progressEl = el('progress-' + i);
 
@@ -297,7 +293,7 @@
       progressEl.style.width = '30%';
 
       try {
-        await storage.createFile(BUCKET_ID, fileId, f);
+        await storage.createFile(BUCKET_ID, Appwrite.ID.unique(), f, undefined, { subject: subject });
         progressEl.style.width = '100%';
         progressEl.classList.add('success');
         statusEl.className = 'upload-item-status success';
