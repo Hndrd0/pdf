@@ -111,7 +111,7 @@
     errEl.className = 'login-error';
 
     try {
-      await account.createEmailPasswordSession(email, password);
+      await account.createEmailSession(email, password);
       var user = await account.get();
       if (!user.labels || user.labels.indexOf('admin') === -1) {
         await account.deleteSession('current');
