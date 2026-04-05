@@ -575,29 +575,104 @@ var BULK_OPEN = (function () {
 
   /**
    * Fetch files from Appwrite bucket and append any that match the current
-   * subject (via file.metadata.subject) under a "📦 Additional Resources" divider.
+   * subject under a "📦 Additional Resources" divider.
+   * Subject is read from f.subject (top-level), f.metadata.subject, or
+   * f.metadata?.subject — whichever is present.
+   * Shows a debug info div when ?debug=1 is in the URL.
    * Silently fails if Appwrite is unavailable or no matching files are found.
    */
   function fetchAppwriteFiles(subjectId) {
-    if (typeof Appwrite === 'undefined') return;
+    if (typeof Appwrite === 'undefined') {
+      console.warn('[Appwrite] SDK not loaded — skipping fetchAppwriteFiles');
+      return;
+    }
+
+    var isDebug = new URLSearchParams(window.location.search).get('debug') === '1';
+    var debugDiv = null;
+    if (isDebug) {
+      debugDiv = document.createElement('div');
+      debugDiv.id = 'appwrite-debug';
+      debugDiv.style.cssText = 'background:#fffbdd;border:1px solid #e0c800;padding:0.6rem 1rem;' +
+        'margin:0.8rem 0;font-size:0.8rem;font-family:monospace;border-radius:4px;';
+      debugDiv.textContent = 'Appwrite: fetching…';
+      var fs = document.getElementById('file-section');
+      if (fs) fs.insertBefore(debugDiv, fs.firstChild);
+    }
+
     var client  = new Appwrite.Client();
     var storage = new Appwrite.Storage(client);
     client.setEndpoint(AW_ENDPOINT).setProject(AW_PROJECT_ID);
 
+    var id = subjectId.toLowerCase();
+
+    /** Extract the subject string from a file object, trying multiple field paths. */
+    function extractSubject(f) {
+      if (f.subject) return String(f.subject);
+      if (f.metadata && f.metadata.subject) return String(f.metadata.subject);
+      return '';
+    }
+
+    function matchesSubject(f) {
+      var subject = extractSubject(f).toLowerCase();
+      return subject === id || subject.startsWith(id + '/');
+    }
+
     storage.listFiles(AW_BUCKET_ID)
       .then(function (resp) {
-        var files = (resp.files || []).filter(function (f) {
-          var meta    = f.metadata || {};
-          var subject = (meta.subject || '').toLowerCase();
-          var id      = subjectId.toLowerCase();
-          return subject === id || subject.startsWith(id + '/');
+        var allFetched = resp.files || [];
+        console.log('[Appwrite] Total files fetched:', allFetched.length, '— matching against subject:', subjectId);
+        allFetched.forEach(function (f) {
+          console.log('[Appwrite] File object:', JSON.stringify(f));
         });
-        if (files.length > 0) {
-          appendAppwriteSection(files);
+
+        var matched = allFetched.filter(matchesSubject);
+        console.log('[Appwrite] Matched files:', matched.length);
+
+        if (isDebug && debugDiv) {
+          debugDiv.textContent = 'Appwrite: fetched ' + allFetched.length + ' file(s), ' +
+            matched.length + ' matched subject "' + subjectId + '"';
         }
+
+        if (matched.length > 0) {
+          appendAppwriteSection(matched);
+          return;
+        }
+
+        // No subject matches from listFiles — try fetching each file individually
+        // to get full metadata (listFiles may omit custom fields)
+        if (allFetched.length === 0) return;
+
+        console.log('[Appwrite] No matches from listFiles — fetching files individually for full metadata');
+        var promises = allFetched.map(function (f) {
+          return storage.getFile(AW_BUCKET_ID, f.$id).catch(function (err) {
+            console.warn('[Appwrite] getFile failed for', f.$id, err);
+            return null;
+          });
+        });
+
+        return Promise.all(promises).then(function (fullFiles) {
+          var enriched = fullFiles.filter(function (f) {
+            if (!f) return false;
+            console.log('[Appwrite] getFile result:', JSON.stringify(f));
+            return matchesSubject(f);
+          });
+          console.log('[Appwrite] Matched (via getFile):', enriched.length);
+
+          if (isDebug && debugDiv) {
+            debugDiv.textContent = 'Appwrite: fetched ' + allFetched.length + ' file(s) (via getFile), ' +
+              enriched.length + ' matched subject "' + subjectId + '"';
+          }
+
+          if (enriched.length > 0) {
+            appendAppwriteSection(enriched);
+          }
+        });
       })
-      .catch(function () {
-        // Silently fail — Appwrite may not be configured or accessible
+      .catch(function (err) {
+        console.warn('[Appwrite] fetchAppwriteFiles error:', err);
+        if (isDebug && debugDiv) {
+          debugDiv.textContent = 'Appwrite: error — ' + (err && err.message ? err.message : String(err));
+        }
       });
   }
 
