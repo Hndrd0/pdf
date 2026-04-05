@@ -371,9 +371,15 @@ var BULK_OPEN = (function () {
  *  - Converts filenames to display names
  *  - Renders clickable PDF cards that open in a new tab
  *  - Provides a live search/filter bar across all sections
+ *  - Fetches additional resources from Appwrite Storage by subject metadata
  */
 
 (function () {
+  /* Appwrite config (public read — no auth required) */
+  var AW_ENDPOINT   = 'https://sgp.cloud.appwrite.io/v1';
+  var AW_PROJECT_ID = '69d0f017002257fde008';
+  var AW_BUCKET_ID  = 'pdfs';
+
   /**
    * Extract the leading number from a filename segment for numeric sort.
    * "Chapter (10).pdf" → 10
@@ -560,6 +566,65 @@ var BULK_OPEN = (function () {
     }
   }
 
+  /**
+   * Fetch files from Appwrite bucket and append any that match the current
+   * subject (via file.metadata.subject) under a "📦 Additional Resources" divider.
+   * Silently fails if Appwrite is unavailable or no matching files are found.
+   */
+  function fetchAppwriteFiles(subjectId) {
+    if (typeof Appwrite === 'undefined') return;
+    var client  = new Appwrite.Client();
+    var storage = new Appwrite.Storage(client);
+    client.setEndpoint(AW_ENDPOINT).setProject(AW_PROJECT_ID);
+
+    storage.listFiles(AW_BUCKET_ID)
+      .then(function (resp) {
+        var files = (resp.files || []).filter(function (f) {
+          var meta    = f.metadata || {};
+          var subject = (meta.subject || '').toLowerCase();
+          var id      = subjectId.toLowerCase();
+          return subject === id || subject.startsWith(id + '/');
+        });
+        if (files.length > 0) {
+          appendAppwriteSection(files);
+        }
+      })
+      .catch(function () {
+        // Silently fail — Appwrite may not be configured or accessible
+      });
+  }
+
+  /**
+   * Append a "📦 Additional Resources" section with file cards for
+   * files fetched from Appwrite Storage.
+   */
+  function appendAppwriteSection(files) {
+    var fileSection = document.getElementById('file-section');
+    if (!fileSection) return;
+
+    var divider = document.createElement('p');
+    divider.className   = 'section-title appwrite-divider';
+    divider.textContent = '📦 Additional Resources';
+    fileSection.appendChild(divider);
+
+    var grid = document.createElement('div');
+    grid.className = 'file-grid';
+
+    files.forEach(function (f) {
+      var url         = AW_ENDPOINT + '/storage/buckets/' + AW_BUCKET_ID + '/files/' + f.$id + '/view?project=' + AW_PROJECT_ID;
+      var displayName = escapeHtml(f.name || f.$id);
+      var card        = document.createElement('a');
+      card.className          = 'file-card';
+      card.href               = url;
+      card.dataset.pdfUrl     = url;
+      card.dataset.pdfTitle   = f.name || f.$id;
+      card.innerHTML          = '<span class="pdf-icon">📄</span><span class="file-name">' + displayName + '</span>';
+      grid.appendChild(card);
+    });
+
+    fileSection.appendChild(grid);
+  }
+
   /** Initialise the subject page */
   function initSubjectPage() {
     const params = new URLSearchParams(window.location.search);
@@ -615,10 +680,14 @@ var BULK_OPEN = (function () {
 
     render("");
 
+    // Fetch additional resources from Appwrite bucket (silently fails if unavailable)
+    fetchAppwriteFiles(subjectId);
+
     // PDF viewer: intercept file-card clicks to open in-page viewer
-    const fileContainer = document.getElementById("file-list");
-    if (fileContainer) {
-      fileContainer.addEventListener("click", function (e) {
+    // Attach to file-section to also cover Appwrite-appended cards
+    const fileSection2 = document.getElementById("file-section");
+    if (fileSection2) {
+      fileSection2.addEventListener("click", function (e) {
         const card = e.target.closest("[data-pdf-url]");
         if (!card) return;
         e.preventDefault();
