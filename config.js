@@ -204,5 +204,15 @@ const SUBJECTS = [
         ]
       }
     ]
+  },
+  {
+    id: "extras",
+    label: "Extras",
+    icon: "🧩",
+    description: "Additional study resources",
+    folder: "https://github.com/Hndrd0/pdf/releases/download/PDF",
+    files: [
+      "RD.Sharma.Mathematics.Class.10.2025-26.-.MCQs.pdf"
+    ]
   }
 ];

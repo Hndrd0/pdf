@@ -496,7 +496,9 @@ var BULK_OPEN = (function () {
     return filtered.map(filename => {
       const displayName = escapeHtml(toDisplayName(filename));
       const url = folder + "/" + encodeURIComponent(filename);
-      return `<a class="file-card" href="${url}" data-pdf-url="${url}" data-pdf-title="${displayName}">
+      const isExternal = /^https?:\/\//i.test(url);
+      const attrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : "";
+      return `<a class="file-card" href="${url}"${attrs} data-pdf-url="${url}" data-pdf-title="${displayName}">
         <span class="pdf-icon">📄</span>
         <span class="file-name">${displayName}</span>
       </a>`;
@@ -772,9 +774,13 @@ var BULK_OPEN = (function () {
       fileSectionEl.addEventListener("click", function (e) {
         const card = e.target.closest("[data-pdf-url]");
         if (!card) return;
+        const url = card.dataset.pdfUrl || "";
+        if (/^https?:\/\//i.test(url)) {
+          return;
+        }
         e.preventDefault();
         if (typeof window.openPdfViewer === "function") {
-          window.openPdfViewer(card.dataset.pdfUrl, card.dataset.pdfTitle);
+          window.openPdfViewer(url, card.dataset.pdfTitle);
         }
       });
     }
