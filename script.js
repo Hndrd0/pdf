@@ -449,6 +449,10 @@ var BULK_OPEN = (function () {
       .replace(/'/g, "&#39;");
   }
 
+  function isExternalUrl(url) {
+    return /^https?:\/\//i.test(url || "");
+  }
+
   /* ----------------------------------------------------------
      Bulk Open helpers (Part 2 — subject page)
      ---------------------------------------------------------- */
@@ -496,7 +500,7 @@ var BULK_OPEN = (function () {
     return filtered.map(filename => {
       const displayName = escapeHtml(toDisplayName(filename));
       const url = folder + "/" + encodeURIComponent(filename);
-      const isExternal = /^https?:\/\//i.test(url);
+      const isExternal = isExternalUrl(url);
       const attrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : "";
       return `<a class="file-card" href="${url}"${attrs} data-pdf-url="${url}" data-pdf-title="${displayName}">
         <span class="pdf-icon">📄</span>
@@ -775,7 +779,7 @@ var BULK_OPEN = (function () {
         const card = e.target.closest("[data-pdf-url]");
         if (!card) return;
         const url = card.dataset.pdfUrl || "";
-        if (/^https?:\/\//i.test(url)) {
+        if (isExternalUrl(url)) {
           return;
         }
         e.preventDefault();
