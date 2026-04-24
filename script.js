@@ -1609,7 +1609,20 @@ var BULK_OPEN = (function () {
       showCanvasError("Invalid PDF URL. Cannot open this file.");
       return;
     }
-    var loadingTask = window.pdfjsLib.getDocument(absUrl);
+
+    // For cross-origin URLs, range requests require a CORS preflight that may
+    // be aborted when the server responds with a redirect (e.g. GitHub release
+    // assets redirect to a CDN).  Disabling range/stream forces a single GET
+    // request which the CDN serves with Access-Control-Allow-Origin: *.
+    var docParams = { url: absUrl };
+    try {
+      if (new URL(absUrl).origin !== window.location.origin) {
+        docParams.disableRange = true;
+        docParams.disableStream = true;
+      }
+    } catch (e) { /* ignore – absUrl is already validated above */ }
+
+    var loadingTask = window.pdfjsLib.getDocument(docParams);
     loadingTask.promise.then(function (pdfDoc) {
       currentPdfDoc = pdfDoc;
       totalPages    = pdfDoc.numPages;
