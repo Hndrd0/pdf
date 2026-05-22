@@ -1090,13 +1090,12 @@ var BULK_OPEN = (function () {
   } else {
     initTimetablePage();
   }
-})();
-/* ============================================================
-   PART 5 — PDF Viewer (Google Docs)
+})();/* ============================================================
+   PART 5 — PDF Viewer (Native Browser)
    ============================================================ */
 (function () {
   var overlayEl = null;
-  var frameEl = googleUrl;
+  var frameEl = null;
   var titleEl = null;
 
   function closeViewer() {
@@ -1114,8 +1113,6 @@ var BULK_OPEN = (function () {
     var absUrl;
     try { absUrl = new URL(url, window.location.href).href; }
     catch (e) { alert("Invalid URL."); return; }
-
-    var googleUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(absUrl) + "&embedded=true";
 
     if (!overlayEl) {
       overlayEl = document.createElement("div");
@@ -1147,7 +1144,7 @@ var BULK_OPEN = (function () {
     }
 
     titleEl.textContent = title || "PDF Viewer";
-    frameEl.src = googleUrl;
+    frameEl.src = absUrl;
     overlayEl.style.display = "block";
     document.body.style.overflow = "hidden";
   };
