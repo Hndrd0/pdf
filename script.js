@@ -1151,16 +1151,20 @@ var BULK_OPEN = (function () {
 
   window.openPdfViewer = function (url, title) {
     var absoluteUrl;
+    var isAlreadyOpen = !!(overlayEl && overlayEl.style.display !== "none");
     try {
       absoluteUrl = new URL(url, window.location.href).href;
     } catch (err) {
+      window.alert("Could not open this PDF: invalid URL.");
       return;
     }
 
+    if (!isAlreadyOpen) {
+      previousBodyOverflow = document.body.style.overflow;
+    }
     buildViewerDomOnce();
 
     titleEl.textContent = title || "PDF Viewer";
-    previousBodyOverflow = document.body.style.overflow;
     frameEl.src = absoluteUrl;
     overlayEl.style.display = "block";
     document.body.style.overflow = "hidden";
