@@ -1104,7 +1104,7 @@ var BULK_OPEN = (function () {
   function closeViewer() {
     if (!overlayEl) return;
     overlayEl.style.display = "none";
-    if (frameEl) frameEl.src = "about:blank";
+    if (frameEl) frameEl.removeAttribute("src");
     document.body.style.overflow = previousBodyOverflow;
   }
 
@@ -1151,7 +1151,13 @@ var BULK_OPEN = (function () {
   }
 
   window.openPdfViewer = function (url, title) {
-    var absoluteUrl = new URL(url, window.location.href).href;
+    var absoluteUrl;
+    try {
+      absoluteUrl = new URL(url, window.location.href).href;
+    } catch (e) {
+      alert("Invalid PDF URL. Unable to open this file.");
+      return;
+    }
     var viewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(absoluteUrl) + "&embedded=true";
 
     ensureViewerDom();
