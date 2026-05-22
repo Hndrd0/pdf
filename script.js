@@ -1096,7 +1096,7 @@ var BULK_OPEN = (function () {
    ============================================================ */
 (function () {
   var overlayEl = null;
-  var frameEl = null;
+  var frameEl = googleUrl;
   var titleEl = null;
 
   function closeViewer() {
