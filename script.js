@@ -1090,61 +1090,78 @@ var BULK_OPEN = (function () {
   } else {
     initTimetablePage();
   }
-})();/* ============================================================
+})();
+
+/* ============================================================
    PART 5 — PDF Viewer (Native Browser)
    ============================================================ */
 (function () {
   var overlayEl = null;
-  var frameEl = null;
   var titleEl = null;
+  var frameEl = null;
+  var closeBtnEl = null;
+  var previousBodyOverflow = "";
 
   function closeViewer() {
-    if (!overlayEl) return;
+    if (!overlayEl || overlayEl.style.display === "none") return;
     overlayEl.style.display = "none";
-    if (frameEl) frameEl.src = "";
-    document.body.style.overflow = "";
+    frameEl.src = "";
+    document.body.style.overflow = previousBodyOverflow;
   }
 
-  document.addEventListener("keydown", function (e) {
+  function handleEscape(e) {
     if (e.key === "Escape") closeViewer();
-  });
+  }
+
+  function buildViewerDomOnce() {
+    if (overlayEl) return;
+
+    overlayEl = document.createElement("div");
+    overlayEl.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:none;padding:1.25rem;box-sizing:border-box;";
+
+    var box = document.createElement("div");
+    box.style.cssText = "width:min(1200px,100%);height:100%;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.35);";
+
+    var toolbar = document.createElement("div");
+    toolbar.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.75rem 1rem;border-bottom:1px solid #e5e7eb;background:#f8fafc;";
+
+    titleEl = document.createElement("span");
+    titleEl.style.cssText = "font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+    closeBtnEl = document.createElement("button");
+    closeBtnEl.type = "button";
+    closeBtnEl.textContent = "Close";
+    closeBtnEl.setAttribute("aria-label", "Close PDF viewer");
+    closeBtnEl.style.cssText = "border:1px solid #cbd5e1;background:#fff;padding:.35rem .8rem;border-radius:8px;cursor:pointer;font-size:.9rem;";
+    closeBtnEl.addEventListener("click", closeViewer);
+
+    frameEl = document.createElement("iframe");
+    frameEl.style.cssText = "flex:1;width:100%;border:0;";
+    frameEl.setAttribute("title", "PDF Viewer");
+
+    toolbar.appendChild(titleEl);
+    toolbar.appendChild(closeBtnEl);
+    box.appendChild(toolbar);
+    box.appendChild(frameEl);
+    overlayEl.appendChild(box);
+    document.body.appendChild(overlayEl);
+  }
+
+  document.addEventListener("keydown", handleEscape);
 
   window.openPdfViewer = function (url, title) {
-    var absUrl;
-    try { absUrl = new URL(url, window.location.href).href; }
-    catch (e) { alert("Invalid URL."); return; }
-
-    if (!overlayEl) {
-      overlayEl = document.createElement("div");
-      overlayEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:none;";
-
-      var box = document.createElement("div");
-      box.style.cssText = "position:absolute;inset:1.5rem;background:#fff;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;";
-
-      var bar = document.createElement("div");
-      bar.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:#f5f6f8;border-bottom:1px solid #e5e7eb;";
-
-      titleEl = document.createElement("span");
-      titleEl.style.cssText = "font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
-
-      var closeBtn = document.createElement("button");
-      closeBtn.textContent = "✕ Close";
-      closeBtn.style.cssText = "border:1px solid #ccc;background:#fff;padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.9rem;";
-      closeBtn.onclick = closeViewer;
-
-      frameEl = document.createElement("iframe");
-      frameEl.style.cssText = "flex:1;width:100%;border:0;";
-
-      bar.appendChild(titleEl);
-      bar.appendChild(closeBtn);
-      box.appendChild(bar);
-      box.appendChild(frameEl);
-      overlayEl.appendChild(box);
-      document.body.appendChild(overlayEl);
+    var absoluteUrl;
+    try {
+      absoluteUrl = new URL(url, window.location.href).href;
+    } catch (err) {
+      return;
     }
 
+    buildViewerDomOnce();
+
     titleEl.textContent = title || "PDF Viewer";
-    frameEl.src = absUrl;
+    previousBodyOverflow = document.body.style.overflow;
+    frameEl.src = absoluteUrl;
     overlayEl.style.display = "block";
     document.body.style.overflow = "hidden";
   };
