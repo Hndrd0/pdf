@@ -1117,7 +1117,13 @@ var BULK_OPEN = (function () {
     if (overlayEl) return;
 
     overlayEl = document.createElement("div");
-    overlayEl.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:none;padding:1.25rem;box-sizing:border-box;";
+    overlayEl.style.position = "fixed";
+    overlayEl.style.inset = "0";
+    overlayEl.style.zIndex = "9999";
+    overlayEl.style.background = "rgba(0,0,0,.75)";
+    overlayEl.style.display = "none";
+    overlayEl.style.padding = "1.25rem";
+    overlayEl.style.boxSizing = "border-box";
 
     var box = document.createElement("div");
     box.style.cssText = "width:min(1200px,100%);height:100%;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.35);";
@@ -1151,7 +1157,7 @@ var BULK_OPEN = (function () {
 
   window.openPdfViewer = function (url, title) {
     var absoluteUrl;
-    var isAlreadyOpen = !!(overlayEl && overlayEl.style.display !== "none");
+    var isAlreadyOpen = overlayEl && overlayEl.style.display !== "none";
     try {
       absoluteUrl = new URL(url, window.location.href).href;
     } catch (err) {
