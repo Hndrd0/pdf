@@ -1091,82 +1091,64 @@ var BULK_OPEN = (function () {
     initTimetablePage();
   }
 })();
-
 /* ============================================================
-   PART 5 — PDF Viewer
+   PART 5 — PDF Viewer (Google Docs)
    ============================================================ */
 (function () {
   var overlayEl = null;
   var frameEl = null;
   var titleEl = null;
-  var previousBodyOverflow = "";
 
   function closeViewer() {
     if (!overlayEl) return;
     overlayEl.style.display = "none";
-    if (frameEl) frameEl.removeAttribute("src");
-    document.body.style.overflow = previousBodyOverflow;
+    if (frameEl) frameEl.src = "";
+    document.body.style.overflow = "";
   }
 
-  function onKeyDown(e) {
-    if (e.key === "Escape" && overlayEl && overlayEl.style.display !== "none") {
-      closeViewer();
-    }
-  }
-
-  function ensureViewerDom() {
-    if (overlayEl) return;
-
-    overlayEl = document.createElement("div");
-    overlayEl.id = "pdf-viewer-overlay";
-    overlayEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:none;";
-
-    var container = document.createElement("div");
-    container.style.cssText = "position:absolute;inset:2rem;background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;";
-
-    var toolbar = document.createElement("div");
-    toolbar.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:#f5f6f8;border-bottom:1px solid #e5e7eb;";
-
-    titleEl = document.createElement("span");
-    titleEl.style.cssText = "font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:1rem;";
-
-    var closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.textContent = "\u2715";
-    closeBtn.setAttribute("aria-label", "Close viewer");
-    closeBtn.style.cssText = "border:0;background:transparent;font-size:1.2rem;line-height:1;cursor:pointer;";
-    closeBtn.addEventListener("click", closeViewer);
-
-    frameEl = document.createElement("iframe");
-    frameEl.setAttribute("title", "PDF viewer");
-    frameEl.style.cssText = "width:100%;height:100%;border:0;flex:1;";
-    frameEl.setAttribute("referrerpolicy", "no-referrer");
-
-    toolbar.appendChild(titleEl);
-    toolbar.appendChild(closeBtn);
-    container.appendChild(toolbar);
-    container.appendChild(frameEl);
-    overlayEl.appendChild(container);
-    document.body.appendChild(overlayEl);
-  }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeViewer();
+  });
 
   window.openPdfViewer = function (url, title) {
-    var absoluteUrl;
-    try {
-      absoluteUrl = new URL(url, window.location.href).href;
-    } catch (e) {
-      alert("Invalid PDF URL. Unable to open this file.");
-      return;
-    }
-    var viewerUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(absoluteUrl) + "&embedded=true";
+    var absUrl;
+    try { absUrl = new URL(url, window.location.href).href; }
+    catch (e) { alert("Invalid URL."); return; }
 
-    ensureViewerDom();
-    previousBodyOverflow = document.body.style.overflow;
+    var googleUrl = "https://docs.google.com/viewer?url=" + encodeURIComponent(absUrl) + "&embedded=true";
+
+    if (!overlayEl) {
+      overlayEl = document.createElement("div");
+      overlayEl.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:none;";
+
+      var box = document.createElement("div");
+      box.style.cssText = "position:absolute;inset:1.5rem;background:#fff;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;";
+
+      var bar = document.createElement("div");
+      bar.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;background:#f5f6f8;border-bottom:1px solid #e5e7eb;";
+
+      titleEl = document.createElement("span");
+      titleEl.style.cssText = "font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+      var closeBtn = document.createElement("button");
+      closeBtn.textContent = "✕ Close";
+      closeBtn.style.cssText = "border:1px solid #ccc;background:#fff;padding:.3rem .8rem;border-radius:6px;cursor:pointer;font-size:.9rem;";
+      closeBtn.onclick = closeViewer;
+
+      frameEl = document.createElement("iframe");
+      frameEl.style.cssText = "flex:1;width:100%;border:0;";
+
+      bar.appendChild(titleEl);
+      bar.appendChild(closeBtn);
+      box.appendChild(bar);
+      box.appendChild(frameEl);
+      overlayEl.appendChild(box);
+      document.body.appendChild(overlayEl);
+    }
+
     titleEl.textContent = title || "PDF Viewer";
-    frameEl.src = viewerUrl;
+    frameEl.src = googleUrl;
     overlayEl.style.display = "block";
     document.body.style.overflow = "hidden";
   };
-
-  document.addEventListener("keydown", onKeyDown);
 })();
